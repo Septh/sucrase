@@ -1,0 +1,15 @@
+{
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "vsicons.associations.files": [
+    {
+      "icon": "tsconfig",
+      "extensions": [],
+      "filenamesGlob": [
+        "tsconfig.vscode",
+      ],
+      "extensionsGlob": [ "json" ],
+      "filename": true,
+      "format": "svg",
+    },
+  ]
+}

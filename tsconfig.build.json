@@ -1,0 +1,26 @@
+{
+  "include": [
+    "src",
+  ],
+  "exclude": [],
+  "compilerOptions": {
+    "moduleResolution": "Node",
+    "module": "commonjs",
+
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "lib": ["es2020"],
+    "skipLibCheck": true,
+
+    "outDir": "zz_build",
+    "target": "es2020",
+    "sourceMap": true,
+    "declaration": true,
+
+    "strict": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+    "isolatedModules": false
+  }
+}
