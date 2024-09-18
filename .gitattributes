@@ -1,1 +1,2 @@
 benchmark/sample.js linguist-vendored
+*.hs text eol=lf

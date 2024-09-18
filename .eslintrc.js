@@ -12,6 +12,7 @@ module.exports = {
   plugins: ["prettier", "@typescript-eslint"],
   rules: {
     camelcase: "off",
+    "linebreak-style": "off",
     "class-methods-use-this": "off",
     "func-names": "off",
     "import/extensions": "off",
