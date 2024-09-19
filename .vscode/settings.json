@@ -6,6 +6,7 @@
       "extensions": [],
       "filenamesGlob": [
         "tsconfig.vscode",
+        "tsconfig.tsd",
       ],
       "extensionsGlob": [ "json" ],
       "filename": true,
