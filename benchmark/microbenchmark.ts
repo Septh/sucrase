@@ -1,8 +1,8 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
 import {next} from "../src/parser/tokenizer";
-import {initParser} from "../src/parser/traverser/base";
-import {hasPrecedingLineBreak} from "../src/parser/traverser/util";
+import {initParser} from "../src/parser/traverser.js";
+import {hasPrecedingLineBreak} from "../src/parser/traverser.js";
 
 function main(): void {
   const benchmark = process.argv[2] || "all";

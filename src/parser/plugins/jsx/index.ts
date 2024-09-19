@@ -8,13 +8,13 @@ import {
   next,
   skipSpace,
   Token,
-} from "../../tokenizer/index";
+} from "../../tokenizer";
 import {TokenType as tt} from "../../tokenizer/types";
-import {input, isTypeScriptEnabled, state} from "../../traverser/base";
-import {parseExpression, parseMaybeAssign} from "../../traverser/expression";
-import {expect, unexpected} from "../../traverser/util";
-import {charCodes} from "../../util/charcodes";
-import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util/identifier";
+import {input, isTypeScriptEnabled, state} from "../../traverser";
+import {parseExpression, parseMaybeAssign} from "../../traverser";
+import {expect, unexpected} from "../../traverser";
+import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util";
+import {charCodes} from "../../util";
 import {tsTryParseJSXTypeArgument} from "../typescript";
 
 /**

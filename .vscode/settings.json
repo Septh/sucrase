@@ -11,5 +11,7 @@
       "filename": true,
       "format": "svg",
     },
-  ]
+  ],
+  "javascript.preferences.importModuleSpecifierEnding": "auto",
+  "typescript.preferences.importModuleSpecifierEnding": "auto"
 }

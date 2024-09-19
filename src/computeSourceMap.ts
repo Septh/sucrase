@@ -2,7 +2,7 @@ import {GenMapping, maybeAddSegment, toEncodedMap} from "@jridgewell/gen-mapping
 
 import type {SourceMapOptions} from "./index";
 import type {Token} from "./parser/tokenizer";
-import {charCodes} from "./parser/util/charcodes";
+import {charCodes} from "./parser/util";
 import type {RootTransformerResult} from "./transformers/RootTransformer";
 
 export interface RawSourceMap {

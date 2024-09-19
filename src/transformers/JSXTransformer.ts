@@ -4,7 +4,7 @@ import type NameManager from "../NameManager";
 import XHTMLEntities from "../parser/plugins/jsx/xhtml";
 import {JSXRole} from "../parser/tokenizer";
 import {TokenType as tt} from "../parser/tokenizer/types";
-import {charCodes} from "../parser/util/charcodes";
+import {charCodes} from "../parser/util";
 import type TokenProcessor from "../TokenProcessor";
 import getJSXPragmaInfo, {type JSXPragmaInfo} from "../util/getJSXPragmaInfo";
 import type RootTransformer from "./RootTransformer";

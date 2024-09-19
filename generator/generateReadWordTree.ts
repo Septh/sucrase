@@ -1,4 +1,4 @@
-import {charCodes} from "../src/parser/util/charcodes";
+import {charCodes} from "../src/parser/util.js";
 
 const KEYWORDS = [
   "break",

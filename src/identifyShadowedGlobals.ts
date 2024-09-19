@@ -3,7 +3,7 @@ import {
   isFunctionScopedDeclaration,
   isNonTopLevelDeclaration,
 } from "./parser/tokenizer";
-import type {Scope} from "./parser/tokenizer/state";
+import type {Scope} from "./parser/tokenizer";
 import {TokenType as tt} from "./parser/tokenizer/types";
 import type TokenProcessor from "./TokenProcessor";
 

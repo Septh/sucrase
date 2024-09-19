@@ -74,7 +74,7 @@ module.exports = {
     // False positive on TS constructors with initializers.
     "no-useless-constructor": "off",
     "prefer-destructuring": "off",
-    "prettier/prettier": "error",
+    "prettier/prettier": "off",
     strict: "off",
     "@typescript-eslint/array-type": ["error", {default: "generic"}],
     "@typescript-eslint/ban-ts-comment": "off",
