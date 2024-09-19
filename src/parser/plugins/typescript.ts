@@ -11,8 +11,8 @@ import {
     pushTypeContext,
     rescan_gt,
 } from "../tokenizer"
-import { ContextualKeyword } from "../tokenizer/keywords"
-import { TokenType, TokenType as tt } from "../tokenizer/types"
+import { ContextualKeyword } from "../keywords"
+import { TokenType, TokenType as tt } from "../generated/types"
 import {
     atPossibleAsync, baseParseMaybeAssign, baseParseMaybeDecoratorArguments, baseParseSubscript, canInsertSemicolon,
     eatContextual,

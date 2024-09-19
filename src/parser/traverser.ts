@@ -66,8 +66,8 @@ import State, {
     popTypeContext,
     pushTypeContext, rescan_gt, retokenizeSlashAsRegex, skipLineComment
 } from "./tokenizer"
-import { ContextualKeyword } from './tokenizer/keywords'
-import { TokenType, formatTokenType, TokenType as tt } from "./tokenizer/types"
+import { ContextualKeyword } from './keywords'
+import { TokenType, formatTokenType, TokenType as tt } from "./generated/types"
 import { IS_IDENTIFIER_START, charCodes } from "./util"
 
 export let isJSXEnabled: boolean

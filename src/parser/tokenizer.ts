@@ -1,6 +1,6 @@
-import { ContextualKeyword } from "./tokenizer/keywords"
-import { READ_WORD_TREE } from './tokenizer/readWordTree'
-import { TokenType as tt, type TokenType } from "./tokenizer/types"
+import { ContextualKeyword } from "./keywords"
+import { READ_WORD_TREE } from './generated/readWordTree'
+import { TokenType as tt, type TokenType } from "./generated/types"
 import { input, isFlowEnabled, state, unexpected } from "./traverser"
 import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, charCodes, skipWhiteSpace } from "./util"
 

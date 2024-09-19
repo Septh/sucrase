@@ -3,7 +3,7 @@ import {
     lookaheadType,
     match,
 } from "../tokenizer"
-import { TokenType as tt } from "../tokenizer/types"
+import { TokenType as tt } from "../generated/types"
 import {
     baseParseConditional,
     isFlowEnabled,

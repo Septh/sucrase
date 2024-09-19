@@ -2,8 +2,8 @@ import * as assert from "assert";
 
 import {parse} from "../src/parser";
 import {IdentifierRole, JSXRole, type Token} from "../src/parser/tokenizer";
-import {ContextualKeyword} from "../src/parser/tokenizer/keywords";
-import {TokenType, TokenType as tt} from "../src/parser/tokenizer/types";
+import {ContextualKeyword} from "../src/parser/keywords";
+import {TokenType, TokenType as tt} from "../src/parser/generated/types";
 
 type SimpleToken = Token & {label?: string};
 type TokenExpectation = {[K in keyof SimpleToken]?: SimpleToken[K]};
@@ -583,7 +583,7 @@ describe("tokens", () => {
   it("treats JSX with one empty and one space-only text as non-static", () => {
     assertFirstJSXRole(
       `
-      const elem = <div> {} 
+      const elem = <div> {}
       </div>;
     `,
       JSXRole.OneChild,
@@ -595,7 +595,7 @@ describe("tokens", () => {
       `
       const elem = (
         <div>
-          {} 
+          {}
         </div>
       );
     `,
@@ -608,9 +608,9 @@ describe("tokens", () => {
       `
       const elem = (
         <div>    {}
-          
+
           a
-          
+
         </div>
       );
     `,

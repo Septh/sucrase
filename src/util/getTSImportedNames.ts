@@ -1,4 +1,4 @@
-import {TokenType as tt} from "../parser/tokenizer/types";
+import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 import getImportExportSpecifierInfo from "./getImportExportSpecifierInfo";
 

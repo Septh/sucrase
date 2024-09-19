@@ -10,8 +10,8 @@ import {
   pushTypeContext,
   type TypeAndKeyword,
 } from "../tokenizer";
-import {ContextualKeyword} from "../tokenizer/keywords";
-import {TokenType, TokenType as tt} from "../tokenizer/types";
+import {ContextualKeyword} from "../keywords";
+import {TokenType, TokenType as tt} from "../generated/types";
 import {input, state} from "../traverser";
 import {
   baseParseMaybeAssign,

@@ -1,7 +1,7 @@
 import type NameManager from "../NameManager";
 import type {Token} from "../parser/tokenizer";
-import {ContextualKeyword} from "../parser/tokenizer/keywords";
-import {TokenType as tt} from "../parser/tokenizer/types";
+import {ContextualKeyword} from "../parser/keywords";
+import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 import type RootTransformer from "../transformers/RootTransformer";
 

@@ -3,6 +3,8 @@ node_modules
 dist
 dist-self-build
 dist-types
+generated
+*.generated.*
 example-runner/example-repos
 integration-test/test-cases/**/dist-actual
 spec-compliance-tests/test262/test262-checkout

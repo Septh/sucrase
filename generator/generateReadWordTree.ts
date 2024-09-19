@@ -1,4 +1,4 @@
-import {charCodes} from "../src/parser/util.js";
+import {charCodes} from "../src/parser/util";
 
 const KEYWORDS = [
   "break",
@@ -85,7 +85,7 @@ const CONTEXTUAL_KEYWORDS = [
 
 const CODE = `\
 // Generated file, do not edit! Run "yarn generate" to re-generate this file.
-import {ContextualKeyword} from "./keywords";
+import {ContextualKeyword} from "../keywords";
 import {TokenType as tt} from "./types";
 
 // prettier-ignore

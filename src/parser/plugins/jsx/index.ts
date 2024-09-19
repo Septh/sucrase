@@ -9,7 +9,7 @@ import {
   skipSpace,
   Token,
 } from "../../tokenizer";
-import {TokenType as tt} from "../../tokenizer/types";
+import {TokenType as tt} from "../../generated/types";
 import {input, isTypeScriptEnabled, state} from "../../traverser";
 import {parseExpression, parseMaybeAssign} from "../../traverser";
 import {expect, unexpected} from "../../traverser";

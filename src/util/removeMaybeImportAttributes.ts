@@ -1,5 +1,5 @@
-import {ContextualKeyword} from "../parser/tokenizer/keywords";
-import {TokenType as tt} from "../parser/tokenizer/types";
+import {ContextualKeyword} from "../parser/keywords";
+import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 
 /**

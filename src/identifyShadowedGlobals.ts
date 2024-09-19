@@ -4,7 +4,7 @@ import {
   isNonTopLevelDeclaration,
 } from "./parser/tokenizer";
 import type {Scope} from "./parser/tokenizer";
-import {TokenType as tt} from "./parser/tokenizer/types";
+import {TokenType as tt} from "./parser/generated/types";
 import type TokenProcessor from "./TokenProcessor";
 
 /**
