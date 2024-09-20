@@ -2,13 +2,16 @@ import { type TokenType, TokenType as tt  } from './generated/types'
 import { ContextualKeyword } from './keywords'
 import type { Token } from './token'
 
-export let isJSXEnabled: boolean
-export let isTypeScriptEnabled: boolean
-export let isFlowEnabled: boolean
 export let state: State
-export let input: string
-export let nextContextId: number
 
+export function initParser(
+    inputCode: string,
+    isJSXEnabledArg: boolean,
+    isTypeScriptEnabledArg: boolean,
+    isFlowEnabledArg: boolean,
+): void {
+    state = new State(inputCode, isTypeScriptEnabledArg, isFlowEnabledArg, isJSXEnabledArg)
+}
 
 export class Scope {
     startTokenIndex: number
@@ -41,6 +44,12 @@ export class StateSnapshot {
 }
 
 export class State {
+    input: string
+    isTypeScriptEnabled: boolean
+    isFlowEnabled: boolean
+    isJSXEnabled: boolean
+    nextContextId: number
+
     // Used to signify the start of a potential arrow function
     potentialArrowAt: number = -1;
 
@@ -78,6 +87,14 @@ export class State {
      */
     error: Error | null = null;
 
+    constructor(input: string, isTypeScriptEnabled: boolean, isFlowEnabled: boolean, isJSXEnabled: boolean) {
+        this.input = input
+        this.isTypeScriptEnabled = isTypeScriptEnabled
+        this.isFlowEnabled = isFlowEnabled
+        this.isJSXEnabled = isJSXEnabled
+        this.nextContextId = 1
+    }
+
     snapshot(): StateSnapshot {
         return new StateSnapshot(
             this.potentialArrowAt,
@@ -111,22 +128,9 @@ export class State {
         this.scopeDepth = snapshot.scopeDepth
         this.error = snapshot.error
     }
-}
 
-export function initParser(
-    inputCode: string,
-    isJSXEnabledArg: boolean,
-    isTypeScriptEnabledArg: boolean,
-    isFlowEnabledArg: boolean,
-): void {
-    input = inputCode
-    state = new State()
-    nextContextId = 1
-    isJSXEnabled = isJSXEnabledArg
-    isTypeScriptEnabled = isTypeScriptEnabledArg
-    isFlowEnabled = isFlowEnabledArg
-}
 
-export function getNextContextId(): number {
-    return nextContextId++
+    getNextContextId(): number {
+        return this.nextContextId++
+    }    
 }

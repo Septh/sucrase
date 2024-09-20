@@ -10,7 +10,7 @@ import {
   Token,
 } from "../../token";
 import {TokenType as tt} from "../../generated/types";
-import {input, isTypeScriptEnabled, state} from "../../state";
+import {state} from "../../state";
 import {parseExpression, parseMaybeAssign} from "../../traverser";
 import {expect, unexpected} from "../../traverser";
 import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util";
@@ -38,12 +38,12 @@ function jsxReadToken(): void {
   let sawNewline = false;
   let sawNonWhitespace = false;
   while (true) {
-    if (state.pos >= input.length) {
+    if (state.pos >= state.input.length) {
       unexpected("Unterminated JSX contents");
       return;
     }
 
-    const ch = input.charCodeAt(state.pos);
+    const ch = state.input.charCodeAt(state.pos);
     if (ch === charCodes.lessThan || ch === charCodes.leftCurlyBrace) {
       if (state.pos === state.start) {
         if (ch === charCodes.lessThan) {
@@ -75,12 +75,12 @@ function jsxReadToken(): void {
 function jsxReadString(quote: number): void {
   state.pos++;
   for (;;) {
-    if (state.pos >= input.length) {
+    if (state.pos >= state.input.length) {
       unexpected("Unterminated string constant");
       return;
     }
 
-    const ch = input.charCodeAt(state.pos);
+    const ch = state.input.charCodeAt(state.pos);
     if (ch === quote) {
       state.pos++;
       break;
@@ -100,11 +100,11 @@ function jsxReadString(quote: number): void {
 function jsxReadWord(): void {
   let ch: number;
   do {
-    if (state.pos > input.length) {
+    if (state.pos > state.input.length) {
       unexpected("Unexpectedly reached the end of input.");
       return;
     }
-    ch = input.charCodeAt(++state.pos);
+    ch = state.input.charCodeAt(++state.pos);
   } while (IS_IDENTIFIER_CHAR[ch] || ch === charCodes.dash);
   finishToken(tt.jsxName);
 }
@@ -143,7 +143,7 @@ function jsxParseElementName(): void {
   // accidentally transformed by the imports transform when preserving JSX.
   if (!hadDot) {
     const firstToken = state.tokens[firstTokenIndex];
-    const firstChar = input.charCodeAt(firstToken.start);
+    const firstChar = state.input.charCodeAt(firstToken.start);
     if (firstChar >= charCodes.lowercaseA && firstChar <= charCodes.lowercaseZ) {
       firstToken.identifierRole = null;
     }
@@ -189,7 +189,7 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
     return false;
   }
   jsxParseElementName();
-  if (isTypeScriptEnabled) {
+  if (state.isTypeScriptEnabled) {
     tsTryParseJSXTypeArgument();
   }
   let hasSeenPropSpread = false;
@@ -205,9 +205,9 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
     if (
       hasSeenPropSpread &&
       state.end - state.start === 3 &&
-      input.charCodeAt(state.start) === charCodes.lowercaseK &&
-      input.charCodeAt(state.start + 1) === charCodes.lowercaseE &&
-      input.charCodeAt(state.start + 2) === charCodes.lowercaseY
+      state.input.charCodeAt(state.start) === charCodes.lowercaseK &&
+      state.input.charCodeAt(state.start + 1) === charCodes.lowercaseE &&
+      state.input.charCodeAt(state.start + 2) === charCodes.lowercaseY
     ) {
       state.tokens[initialTokenIndex].jsxRole = JSXRole.KeyAfterPropSpread;
     }
@@ -323,7 +323,7 @@ export function nextJSXTagToken(): void {
   state.tokens.push(new Token());
   skipSpace();
   state.start = state.pos;
-  const code = input.charCodeAt(state.pos);
+  const code = state.input.charCodeAt(state.pos);
 
   if (IS_IDENTIFIER_START[code]) {
     jsxReadWord();

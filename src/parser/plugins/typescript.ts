@@ -27,7 +27,7 @@ import {
     parsePropertyName, parseStatement, parseTemplate, parseVarStatement, semicolon, unexpected, type StopState
 } from "../traverser"
 import { nextJSXTagToken } from "./jsx/index"
-import { state, isJSXEnabled } from '../state'
+import { state } from '../state'
 
 // #region typescript.ts -------------------------------------------------------
 function tsIsIdentifier(): boolean {
@@ -1518,7 +1518,7 @@ export function tsStartParseAsyncArrowFromCallExpression(): void {
 // Returns true if the expression was an arrow function.
 export function tsParseMaybeAssign(noIn: boolean, isWithinParens: boolean): boolean {
     // Note: When the JSX plugin is on, type assertions (`<T> x`) aren't valid syntax.
-    if (isJSXEnabled) {
+    if (state.isJSXEnabled) {
         return tsParseMaybeAssignWithJSX(noIn, isWithinParens)
     } else {
         return tsParseMaybeAssignWithoutJSX(noIn, isWithinParens)

@@ -10,7 +10,7 @@ import {
 } from "../token";
 import {ContextualKeyword} from "../keywords";
 import {TokenType, TokenType as tt} from "../generated/types";
-import {input, state} from "../state";
+import {state} from "../state";
 import {
   baseParseMaybeAssign,
   baseParseSubscript,
@@ -499,7 +499,7 @@ function flowParseTypeofType(): void {
 function flowParseTupleType(): void {
   expect(tt.bracketL);
   // We allow trailing commas
-  while (state.pos < input.length && !match(tt.bracketR)) {
+  while (state.pos < state.input.length && !match(tt.bracketR)) {
     flowParseType();
     if (match(tt.bracketR)) {
       break;

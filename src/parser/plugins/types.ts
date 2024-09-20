@@ -7,7 +7,7 @@ import { TokenType as tt } from "../generated/types"
 import { baseParseConditional } from "../traverser"
 import { flowParseTypeAnnotation } from './flow'
 import { tsParseTypeAnnotation } from './typescript'
-import { isTypeScriptEnabled, isFlowEnabled } from '../state'
+import { state } from '../state'
 
 // #region types.ts ------------------------------------------------------------
 /**
@@ -33,9 +33,9 @@ export function typedParseConditional(noIn: boolean): void {
 export function typedParseParenItem(): void {
     eatTypeToken(tt.question)
     if (match(tt.colon)) {
-        if (isTypeScriptEnabled) {
+        if (state.isTypeScriptEnabled) {
             tsParseTypeAnnotation()
-        } else if (isFlowEnabled) {
+        } else if (state.isFlowEnabled) {
             flowParseTypeAnnotation()
         }
     }

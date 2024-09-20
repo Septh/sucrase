@@ -3,7 +3,7 @@ import { READ_WORD_TREE } from './generated/readWordTree'
 import { TokenType as tt, type TokenType } from "./generated/types"
 import { unexpected } from "./traverser"
 import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, charCodes, skipWhiteSpace } from "./util"
-import { input, isFlowEnabled, state } from './state'
+import { state } from './state'
 
 export const enum IdentifierRole {
     Access,
@@ -251,12 +251,12 @@ export function nextTokenStart(): number {
 
 export function nextTokenStartSince(pos: number): number {
     skipWhiteSpace.lastIndex = pos
-    const skip = skipWhiteSpace.exec(input)
+    const skip = skipWhiteSpace.exec(state.input)
     return pos + skip![0].length
 }
 
 export function lookaheadCharCode(): number {
-    return input.charCodeAt(nextTokenStart())
+    return state.input.charCodeAt(nextTokenStart())
 }
 
 // Read a single token, updating the parser object's token-related
@@ -264,22 +264,22 @@ export function lookaheadCharCode(): number {
 export function nextToken(): void {
     skipSpace()
     state.start = state.pos
-    if (state.pos >= input.length) {
+    if (state.pos >= state.input.length) {
         const tokens = state.tokens
         // We normally run past the end a bit, but if we're way past the end, avoid an infinite loop.
         // Also check the token positions rather than the types since sometimes we rewrite the token
         // type to something else.
         if (
             tokens.length >= 2 &&
-            tokens[tokens.length - 1].start >= input.length &&
-            tokens[tokens.length - 2].start >= input.length
+            tokens[tokens.length - 1].start >= state.input.length &&
+            tokens[tokens.length - 2].start >= state.input.length
         ) {
             unexpected("Unexpectedly reached the end of input.")
         }
         finishToken(tt.eof)
         return
     }
-    readToken(input.charCodeAt(state.pos))
+    readToken(state.input.charCodeAt(state.pos))
 }
 
 function readToken(code: number): void {
@@ -288,7 +288,7 @@ function readToken(code: number): void {
     if (
         IS_IDENTIFIER_START[code] ||
         code === charCodes.backslash ||
-        (code === charCodes.atSign && input.charCodeAt(state.pos + 1) === charCodes.atSign)
+        (code === charCodes.atSign && state.input.charCodeAt(state.pos + 1) === charCodes.atSign)
     ) {
         readWord()
     } else {
@@ -298,11 +298,11 @@ function readToken(code: number): void {
 
 function skipBlockComment(): void {
     while (
-        input.charCodeAt(state.pos) !== charCodes.asterisk ||
-        input.charCodeAt(state.pos + 1) !== charCodes.slash
+        state.input.charCodeAt(state.pos) !== charCodes.asterisk ||
+        state.input.charCodeAt(state.pos + 1) !== charCodes.slash
     ) {
         state.pos++
-        if (state.pos > input.length) {
+        if (state.pos > state.input.length) {
             unexpected("Unterminated comment", state.pos - 2)
             return
         }
@@ -311,16 +311,16 @@ function skipBlockComment(): void {
 }
 
 export function skipLineComment(startSkip: number): void {
-    let ch = input.charCodeAt((state.pos += startSkip))
-    if (state.pos < input.length) {
+    let ch = state.input.charCodeAt((state.pos += startSkip))
+    if (state.pos < state.input.length) {
         while (
             ch !== charCodes.lineFeed &&
             ch !== charCodes.carriageReturn &&
             ch !== charCodes.lineSeparator &&
             ch !== charCodes.paragraphSeparator &&
-            ++state.pos < input.length
+            ++state.pos < state.input.length
         ) {
-            ch = input.charCodeAt(state.pos)
+            ch = state.input.charCodeAt(state.pos)
         }
     }
 }
@@ -328,11 +328,11 @@ export function skipLineComment(startSkip: number): void {
 // Called at the start of the parse and after every token. Skips
 // whitespace and comments.
 export function skipSpace(): void {
-    while (state.pos < input.length) {
-        const ch = input.charCodeAt(state.pos)
+    while (state.pos < state.input.length) {
+        const ch = state.input.charCodeAt(state.pos)
         switch (ch) {
             case charCodes.carriageReturn:
-                if (input.charCodeAt(state.pos + 1) === charCodes.lineFeed) {
+                if (state.input.charCodeAt(state.pos + 1) === charCodes.lineFeed) {
                     ++state.pos
                 }
 
@@ -343,7 +343,7 @@ export function skipSpace(): void {
                 break
 
             case charCodes.slash:
-                switch (input.charCodeAt(state.pos + 1)) {
+                switch (state.input.charCodeAt(state.pos + 1)) {
                     case charCodes.asterisk:
                         state.pos += 2
                         skipBlockComment()
@@ -388,13 +388,13 @@ export function finishToken(
 //
 // All in the name of speed.
 function readToken_dot(): void {
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
     if (nextChar >= charCodes.digit0 && nextChar <= charCodes.digit9) {
         readNumber(true)
         return
     }
 
-    if (nextChar === charCodes.dot && input.charCodeAt(state.pos + 2) === charCodes.dot) {
+    if (nextChar === charCodes.dot && state.input.charCodeAt(state.pos + 2) === charCodes.dot) {
         state.pos += 3
         finishToken(tt.ellipsis)
     } else {
@@ -404,7 +404,7 @@ function readToken_dot(): void {
 }
 
 function readToken_slash(): void {
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
     if (nextChar === charCodes.equalsTo) {
         finishOp(tt.assign, 2)
     } else {
@@ -416,19 +416,19 @@ function readToken_mult_modulo(code: number): void {
     // '%*'
     let tokenType = code === charCodes.asterisk ? tt.star : tt.modulo
     let width = 1
-    let nextChar = input.charCodeAt(state.pos + 1)
+    let nextChar = state.input.charCodeAt(state.pos + 1)
 
     // Exponentiation operator **
     if (code === charCodes.asterisk && nextChar === charCodes.asterisk) {
         width++
-        nextChar = input.charCodeAt(state.pos + 2)
+        nextChar = state.input.charCodeAt(state.pos + 2)
         tokenType = tt.exponent
     }
 
     // Match *= or %=, disallowing *=> which can be valid in flow.
     if (
         nextChar === charCodes.equalsTo &&
-        input.charCodeAt(state.pos + 2) !== charCodes.greaterThan
+        state.input.charCodeAt(state.pos + 2) !== charCodes.greaterThan
     ) {
         width++
         tokenType = tt.assign
@@ -439,10 +439,10 @@ function readToken_mult_modulo(code: number): void {
 
 function readToken_pipe_amp(code: number): void {
     // '|&'
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
 
     if (nextChar === code) {
-        if (input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
+        if (state.input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
             // ||= or &&=
             finishOp(tt.assign, 3)
         } else {
@@ -457,7 +457,7 @@ function readToken_pipe_amp(code: number): void {
         if (nextChar === charCodes.greaterThan) {
             finishOp(tt.pipeline, 2)
             return
-        } else if (nextChar === charCodes.rightCurlyBrace && isFlowEnabled) {
+        } else if (nextChar === charCodes.rightCurlyBrace && state.isFlowEnabled) {
             // '|}'
             finishOp(tt.braceBarR, 2)
             return
@@ -474,7 +474,7 @@ function readToken_pipe_amp(code: number): void {
 
 function readToken_caret(): void {
     // '^'
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
     if (nextChar === charCodes.equalsTo) {
         finishOp(tt.assign, 2)
     } else {
@@ -484,7 +484,7 @@ function readToken_caret(): void {
 
 function readToken_plus_min(code: number): void {
     // '+-'
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
 
     if (nextChar === code) {
         // Tentatively call this a prefix operator, but it might be changed to postfix later.
@@ -502,10 +502,10 @@ function readToken_plus_min(code: number): void {
 }
 
 function readToken_lt(): void {
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
 
     if (nextChar === charCodes.lessThan) {
-        if (input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
+        if (state.input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
             finishOp(tt.assign, 3)
             return
         }
@@ -547,11 +547,11 @@ function readToken_gt(): void {
         return
     }
 
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
 
     if (nextChar === charCodes.greaterThan) {
-        const size = input.charCodeAt(state.pos + 2) === charCodes.greaterThan ? 3 : 2
-        if (input.charCodeAt(state.pos + size) === charCodes.equalsTo) {
+        const size = state.input.charCodeAt(state.pos + 2) === charCodes.greaterThan ? 3 : 2
+        if (state.input.charCodeAt(state.pos + size) === charCodes.equalsTo) {
             finishOp(tt.assign, size + 1)
             return
         }
@@ -590,9 +590,9 @@ export function rescan_gt(): void {
 
 function readToken_eq_excl(code: number): void {
     // '=!'
-    const nextChar = input.charCodeAt(state.pos + 1)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
     if (nextChar === charCodes.equalsTo) {
-        finishOp(tt.equality, input.charCodeAt(state.pos + 2) === charCodes.equalsTo ? 3 : 2)
+        finishOp(tt.equality, state.input.charCodeAt(state.pos + 2) === charCodes.equalsTo ? 3 : 2)
         return
     }
     if (code === charCodes.equalsTo && nextChar === charCodes.greaterThan) {
@@ -606,13 +606,13 @@ function readToken_eq_excl(code: number): void {
 
 function readToken_question(): void {
     // '?'
-    const nextChar = input.charCodeAt(state.pos + 1)
-    const nextChar2 = input.charCodeAt(state.pos + 2)
+    const nextChar = state.input.charCodeAt(state.pos + 1)
+    const nextChar2 = state.input.charCodeAt(state.pos + 2)
     if (
         nextChar === charCodes.questionMark &&
         // In Flow (but not TypeScript), ??string is a valid type that should be
         // tokenized as two individual ? tokens.
-        !(isFlowEnabled && state.isType)
+        !(state.isFlowEnabled && state.isType)
     ) {
         if (nextChar2 === charCodes.equalsTo) {
             // '??='
@@ -675,7 +675,7 @@ export function getTokenFromCode(code: number): void {
             return
 
         case charCodes.leftCurlyBrace:
-            if (isFlowEnabled && input.charCodeAt(state.pos + 1) === charCodes.verticalBar) {
+            if (state.isFlowEnabled && state.input.charCodeAt(state.pos + 1) === charCodes.verticalBar) {
                 finishOp(tt.braceBarL, 2)
             } else {
                 ++state.pos
@@ -689,7 +689,7 @@ export function getTokenFromCode(code: number): void {
             return
 
         case charCodes.colon:
-            if (input.charCodeAt(state.pos + 1) === charCodes.colon) {
+            if (state.input.charCodeAt(state.pos + 1) === charCodes.colon) {
                 finishOp(tt.doubleColon, 2)
             } else {
                 ++state.pos
@@ -711,7 +711,7 @@ export function getTokenFromCode(code: number): void {
             return
 
         case charCodes.digit0: {
-            const nextChar = input.charCodeAt(state.pos + 1)
+            const nextChar = state.input.charCodeAt(state.pos + 1)
             // '0x', '0X', '0o', '0O', '0b', '0B'
             if (
                 nextChar === charCodes.lowercaseX ||
@@ -807,11 +807,11 @@ function readRegexp(): void {
     let escaped = false
     let inClass = false
     for (; ;) {
-        if (state.pos >= input.length) {
+        if (state.pos >= state.input.length) {
             unexpected("Unterminated regular expression", start)
             return
         }
-        const code = input.charCodeAt(state.pos)
+        const code = state.input.charCodeAt(state.pos)
         if (escaped) {
             escaped = false
         } else {
@@ -840,7 +840,7 @@ function readRegexp(): void {
  */
 function readInt(): void {
     while (true) {
-        const code = input.charCodeAt(state.pos)
+        const code = state.input.charCodeAt(state.pos)
         if ((code >= charCodes.digit0 && code <= charCodes.digit9) || code === charCodes.underscore) {
             state.pos++
         } else {
@@ -854,7 +854,7 @@ function readRadixNumber(): void {
 
     // Walk to the end of the number, allowing hex digits.
     while (true) {
-        const code = input.charCodeAt(state.pos)
+        const code = state.input.charCodeAt(state.pos)
         if (
             (code >= charCodes.digit0 && code <= charCodes.digit9) ||
             (code >= charCodes.lowercaseA && code <= charCodes.lowercaseF) ||
@@ -867,7 +867,7 @@ function readRadixNumber(): void {
         }
     }
 
-    const nextChar = input.charCodeAt(state.pos)
+    const nextChar = state.input.charCodeAt(state.pos)
     if (nextChar === charCodes.lowercaseN) {
         ++state.pos
         finishToken(tt.bigint)
@@ -885,20 +885,20 @@ function readNumber(startsWithDot: boolean): void {
         readInt()
     }
 
-    let nextChar = input.charCodeAt(state.pos)
+    let nextChar = state.input.charCodeAt(state.pos)
     if (nextChar === charCodes.dot) {
         ++state.pos
         readInt()
-        nextChar = input.charCodeAt(state.pos)
+        nextChar = state.input.charCodeAt(state.pos)
     }
 
     if (nextChar === charCodes.uppercaseE || nextChar === charCodes.lowercaseE) {
-        nextChar = input.charCodeAt(++state.pos)
+        nextChar = state.input.charCodeAt(++state.pos)
         if (nextChar === charCodes.plusSign || nextChar === charCodes.dash) {
             ++state.pos
         }
         readInt()
-        nextChar = input.charCodeAt(state.pos)
+        nextChar = state.input.charCodeAt(state.pos)
     }
 
     if (nextChar === charCodes.lowercaseN) {
@@ -925,11 +925,11 @@ function readNumber(startsWithDot: boolean): void {
 function readString(quote: number): void {
     state.pos++
     for (; ;) {
-        if (state.pos >= input.length) {
+        if (state.pos >= state.input.length) {
             unexpected("Unterminated string constant")
             return
         }
-        const ch = input.charCodeAt(state.pos)
+        const ch = state.input.charCodeAt(state.pos)
         if (ch === charCodes.backslash) {
             state.pos++
         } else if (ch === quote) {
@@ -944,14 +944,14 @@ function readString(quote: number): void {
 // Reads template string tokens.
 function readTmplToken(): void {
     for (; ;) {
-        if (state.pos >= input.length) {
+        if (state.pos >= state.input.length) {
             unexpected("Unterminated template")
             return
         }
-        const ch = input.charCodeAt(state.pos)
+        const ch = state.input.charCodeAt(state.pos)
         if (
             ch === charCodes.graveAccent ||
-            (ch === charCodes.dollarSign && input.charCodeAt(state.pos + 1) === charCodes.leftCurlyBrace)
+            (ch === charCodes.dollarSign && state.input.charCodeAt(state.pos + 1) === charCodes.leftCurlyBrace)
         ) {
             if (state.pos === state.start && match(tt.template)) {
                 if (ch === charCodes.dollarSign) {
@@ -978,17 +978,17 @@ function readTmplToken(): void {
 // readWord, but calling skipWord from readWord seems to slightly hurt performance from some rough
 // measurements.
 export function skipWord(): void {
-    while (state.pos < input.length) {
-        const ch = input.charCodeAt(state.pos)
+    while (state.pos < state.input.length) {
+        const ch = state.input.charCodeAt(state.pos)
         if (IS_IDENTIFIER_CHAR[ch]) {
             state.pos++
         } else if (ch === charCodes.backslash) {
             // \u
             state.pos += 2
-            if (input.charCodeAt(state.pos) === charCodes.leftCurlyBrace) {
+            if (state.input.charCodeAt(state.pos) === charCodes.leftCurlyBrace) {
                 while (
-                    state.pos < input.length &&
-                    input.charCodeAt(state.pos) !== charCodes.rightCurlyBrace
+                    state.pos < state.input.length &&
+                    state.input.charCodeAt(state.pos) !== charCodes.rightCurlyBrace
                 ) {
                     state.pos++
                 }
@@ -1011,8 +1011,8 @@ export function readWord(): void {
     let treePos = 0
     let code = 0
     let pos = state.pos
-    while (pos < input.length) {
-        code = input.charCodeAt(pos)
+    while (pos < state.input.length) {
+        code = state.input.charCodeAt(pos)
         if (code < charCodes.lowercaseA || code > charCodes.lowercaseZ) {
             break
         }
@@ -1036,20 +1036,20 @@ export function readWord(): void {
         return
     }
 
-    while (pos < input.length) {
-        const ch = input.charCodeAt(pos)
+    while (pos < state.input.length) {
+        const ch = state.input.charCodeAt(pos)
         if (IS_IDENTIFIER_CHAR[ch]) {
             pos++
         } else if (ch === charCodes.backslash) {
             // \u
             pos += 2
-            if (input.charCodeAt(pos) === charCodes.leftCurlyBrace) {
-                while (pos < input.length && input.charCodeAt(pos) !== charCodes.rightCurlyBrace) {
+            if (state.input.charCodeAt(pos) === charCodes.leftCurlyBrace) {
+                while (pos < state.input.length && state.input.charCodeAt(pos) !== charCodes.rightCurlyBrace) {
                     pos++
                 }
                 pos++
             }
-        } else if (ch === charCodes.atSign && input.charCodeAt(pos + 1) === charCodes.atSign) {
+        } else if (ch === charCodes.atSign && state.input.charCodeAt(pos + 1) === charCodes.atSign) {
             pos += 2
         } else {
             break

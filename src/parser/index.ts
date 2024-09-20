@@ -1,4 +1,4 @@
-import { state, Scope, initParser } from './state'
+import { state, initParser, type Scope } from './state'
 import type { Token } from "./token"
 import { augmentError, parseFile } from "./traverser"
 
