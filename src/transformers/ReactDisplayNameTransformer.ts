@@ -1,6 +1,6 @@
 import type CJSImportProcessor from "../CJSImportProcessor";
 import type {Options} from "../index";
-import {IdentifierRole} from "../parser/tokenizer";
+import {IdentifierRole} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 import type RootTransformer from "./RootTransformer";

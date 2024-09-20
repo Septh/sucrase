@@ -1,7 +1,7 @@
 import type CJSImportProcessor from "../CJSImportProcessor";
 import type {HelperManager} from "../HelperManager";
 import type NameManager from "../NameManager";
-import {IdentifierRole, isDeclaration, isObjectShorthandDeclaration} from "../parser/tokenizer";
+import {IdentifierRole, isDeclaration, isObjectShorthandDeclaration} from "../parser/token";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";

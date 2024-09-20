@@ -1,4 +1,4 @@
-import {isTopLevelDeclaration} from "../parser/tokenizer";
+import {isTopLevelDeclaration} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 

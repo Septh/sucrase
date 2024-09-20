@@ -1,7 +1,7 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
-import {next} from "../src/parser/tokenizer";
-import {initParser} from "../src/parser/traverser.js";
+import {next} from "../src/parser/token";
+import {initParser} from "../src/parser/state";
 import {hasPrecedingLineBreak} from "../src/parser/traverser.js";
 
 function main(): void {

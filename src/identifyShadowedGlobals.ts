@@ -2,8 +2,8 @@ import {
   isBlockScopedDeclaration,
   isFunctionScopedDeclaration,
   isNonTopLevelDeclaration,
-} from "./parser/tokenizer";
-import type {Scope} from "./parser/tokenizer";
+} from "./parser/token";
+import type {Scope} from "./parser/state";
 import {TokenType as tt} from "./parser/generated/types";
 import type TokenProcessor from "./TokenProcessor";
 

@@ -1,5 +1,5 @@
 import type NameManager from "../NameManager";
-import type {Token} from "../parser/tokenizer";
+import type {Token} from "../parser/token";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";

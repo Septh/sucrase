@@ -10,7 +10,7 @@ import {
     popTypeContext,
     pushTypeContext,
     rescan_gt,
-} from "../tokenizer"
+} from "../token"
 import { ContextualKeyword } from "../keywords"
 import { TokenType, TokenType as tt } from "../generated/types"
 import {
@@ -19,14 +19,15 @@ import {
     expect,
     expectContextual,
     hasPrecedingLineBreak,
-    isContextual, isJSXEnabled, isLineTerminator,
+    isContextual, isLineTerminator,
     isLookaheadContextual, parseBindingIdentifier, parseBindingList, parseBlockBody, parseCallExpressionArguments, parseClass, parseExprAtom,
     parseExpression, parseFunction, parseFunctionBody, parseFunctionParams, parseIdentifier, parseImportedIdentifier, parseLiteral,
     parseMaybeAssign,
     parseMaybeUnary,
-    parsePropertyName, parseStatement, parseTemplate, parseVarStatement, semicolon, state, unexpected, type StopState
+    parsePropertyName, parseStatement, parseTemplate, parseVarStatement, semicolon, unexpected, type StopState
 } from "../traverser"
 import { nextJSXTagToken } from "./jsx/index"
+import { state, isJSXEnabled } from '../state'
 
 // #region typescript.ts -------------------------------------------------------
 function tsIsIdentifier(): boolean {

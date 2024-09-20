@@ -1,4 +1,4 @@
-import {IdentifierRole, isTopLevelDeclaration} from "../parser/tokenizer";
+import {IdentifierRole, isTopLevelDeclaration} from "../parser/token";
 import type TokenProcessor from "../TokenProcessor";
 import Transformer from "./Transformer";
 

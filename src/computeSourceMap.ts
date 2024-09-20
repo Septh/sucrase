@@ -1,7 +1,7 @@
 import {GenMapping, maybeAddSegment, toEncodedMap} from "@jridgewell/gen-mapping";
 
 import type {SourceMapOptions} from "./index";
-import type {Token} from "./parser/tokenizer";
+import type {Token} from "./parser/token";
 import {charCodes} from "./parser/util";
 import type {RootTransformerResult} from "./transformers/RootTransformer";
 

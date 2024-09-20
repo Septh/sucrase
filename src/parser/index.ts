@@ -1,5 +1,6 @@
-import type { Scope, Token } from "./tokenizer"
-import { augmentError, initParser, parseFile, state } from "./traverser"
+import { state, Scope, initParser } from './state'
+import type { Token } from "./token"
+import { augmentError, parseFile } from "./traverser"
 
 export class File {
   tokens: Array<Token>;

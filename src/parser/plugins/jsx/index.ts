@@ -8,9 +8,9 @@ import {
   next,
   skipSpace,
   Token,
-} from "../../tokenizer";
+} from "../../token";
 import {TokenType as tt} from "../../generated/types";
-import {input, isTypeScriptEnabled, state} from "../../traverser";
+import {input, isTypeScriptEnabled, state} from "../../state";
 import {parseExpression, parseMaybeAssign} from "../../traverser";
 import {expect, unexpected} from "../../traverser";
 import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util";

@@ -1,4 +1,4 @@
-import type {Token} from "../parser/tokenizer";
+import type {Token} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
 
 /**

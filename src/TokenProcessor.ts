@@ -1,5 +1,5 @@
 import type {HelperManager} from "./HelperManager";
-import type {Token} from "./parser/tokenizer";
+import type {Token} from "./parser/token";
 import type {ContextualKeyword} from "./parser/keywords";
 import {type TokenType, TokenType as tt} from "./parser/generated/types";
 import isAsyncOperation from "./util/isAsyncOperation";

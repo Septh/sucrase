@@ -2,16 +2,12 @@ import {
     eatTypeToken,
     lookaheadType,
     match,
-} from "../tokenizer"
+} from "../token"
 import { TokenType as tt } from "../generated/types"
-import {
-    baseParseConditional,
-    isFlowEnabled,
-    isTypeScriptEnabled
-
-} from "../traverser"
+import { baseParseConditional } from "../traverser"
 import { flowParseTypeAnnotation } from './flow'
 import { tsParseTypeAnnotation } from './typescript'
+import { isTypeScriptEnabled, isFlowEnabled } from '../state'
 
 // #region types.ts ------------------------------------------------------------
 /**

@@ -56,8 +56,8 @@ import {
     tsTryParseTypeAnnotation,
     tsTryParseTypeParameters,
 } from './plugins/typescript'
-import State, {
-    IdentifierRole, Scope, eat,
+import {
+    IdentifierRole, eat,
     eatTypeToken, finishToken, lookaheadCharCode, lookaheadType,
     lookaheadTypeAndKeyword,
     match,
@@ -65,17 +65,11 @@ import State, {
     nextTokenStartSince,
     popTypeContext,
     pushTypeContext, rescan_gt, retokenizeSlashAsRegex, skipLineComment
-} from "./tokenizer"
+} from "./token"
 import { ContextualKeyword } from './keywords'
 import { TokenType, formatTokenType, TokenType as tt } from "./generated/types"
 import { IS_IDENTIFIER_START, charCodes } from "./util"
-
-export let isJSXEnabled: boolean
-export let isTypeScriptEnabled: boolean
-export let isFlowEnabled: boolean
-export let state: State
-export let input: string
-export let nextContextId: number
+import State, { Scope, getNextContextId, input, isFlowEnabled, isJSXEnabled, isTypeScriptEnabled, nextContextId, state } from './state'
 
 // #region util.ts -------------------------------------------------------------
 // Tests whether parsed token is a contextual keyword.
@@ -2505,10 +2499,6 @@ function maybeParseImportAttributes(): void {
 // #endregion
 
 // #region base.ts -------------------------------------------------------------
-export function getNextContextId(): number {
-    return nextContextId++
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function augmentError(error: any): any {
     if ("pos" in error) {
@@ -2542,19 +2532,6 @@ export function locationForIndex(pos: number): Loc {
     return new Loc(line, column)
 }
 
-export function initParser(
-    inputCode: string,
-    isJSXEnabledArg: boolean,
-    isTypeScriptEnabledArg: boolean,
-    isFlowEnabledArg: boolean,
-): void {
-    input = inputCode
-    state = new State()
-    nextContextId = 1
-    isJSXEnabled = isJSXEnabledArg
-    isTypeScriptEnabled = isTypeScriptEnabledArg
-    isFlowEnabled = isFlowEnabledArg
-}
 // #endregion
 
 // #region index.ts -------------------------------------------------------------

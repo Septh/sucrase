@@ -1,5 +1,3 @@
-/* eslint max-len: 0 */
-
 import {
   eat,
   lookaheadType,
@@ -9,10 +7,10 @@ import {
   popTypeContext,
   pushTypeContext,
   type TypeAndKeyword,
-} from "../tokenizer";
+} from "../token";
 import {ContextualKeyword} from "../keywords";
 import {TokenType, TokenType as tt} from "../generated/types";
-import {input, state} from "../traverser";
+import {input, state} from "../state";
 import {
   baseParseMaybeAssign,
   baseParseSubscript,

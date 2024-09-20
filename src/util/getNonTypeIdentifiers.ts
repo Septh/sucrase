@@ -1,5 +1,5 @@
 import type {Options} from "../index";
-import {IdentifierRole} from "../parser/tokenizer";
+import {IdentifierRole} from "../parser/token";
 import {TokenType, TokenType as tt} from "../parser/generated/types";
 import type TokenProcessor from "../TokenProcessor";
 import {startsWithLowerCase} from "../transformers/JSXTransformer";

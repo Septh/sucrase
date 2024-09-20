@@ -6,7 +6,7 @@ import NameManager from "./NameManager";
 import {validateOptions} from "./Options";
 import type {Options, SourceMapOptions, Transform} from "./Options";
 import {parse} from "./parser";
-import type {Scope} from "./parser/tokenizer";
+import type {Scope} from "./parser/state";
 import TokenProcessor from "./TokenProcessor";
 import RootTransformer from "./transformers/RootTransformer";
 import formatTokens from "./util/formatTokens";
