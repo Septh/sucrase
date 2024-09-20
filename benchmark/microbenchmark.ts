@@ -1,7 +1,6 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
 import {initParser, state} from "../src/parser/state";
-import {hasPrecedingLineBreak} from "../src/parser/traverser.js";
 
 function main(): void {
   const benchmark = process.argv[2] || "all";
@@ -14,11 +13,11 @@ function main(): void {
     runMicrobenchmark(
       "hasPredecingLineBreak",
       () => {
-        hasPrecedingLineBreak();
-        hasPrecedingLineBreak();
-        hasPrecedingLineBreak();
-        hasPrecedingLineBreak();
-        hasPrecedingLineBreak();
+        state.hasPrecedingLineBreak();
+        state.hasPrecedingLineBreak();
+        state.hasPrecedingLineBreak();
+        state.hasPrecedingLineBreak();
+        state.hasPrecedingLineBreak();
       },
       1000000,
     );

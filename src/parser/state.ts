@@ -1,8 +1,8 @@
-import { type TokenType, TokenType as tt  } from './generated/types'
+import { type TokenType, TokenType as tt, formatTokenType } from './generated/types'
 import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'
-import { skipWhiteSpace } from './util'
+import { charCodes, skipWhiteSpace } from './util'
 
 export let state: State
 
@@ -136,7 +136,7 @@ export class State {
 
     getNextContextId(): number {
         return this.nextContextId++
-    }    
+    }
 
     pushTypeContext(existingTokensInType: number): boolean {
         for (let i = this.tokens.length - existingTokensInType; i < this.tokens.length; i++) {
@@ -146,7 +146,7 @@ export class State {
         this.isType = true
         return oldIsType
     }
-    
+
     popTypeContext(oldIsType: boolean): void {
         this.isType = oldIsType
     }
@@ -213,14 +213,111 @@ export class State {
     nextTokenStart(): number {
         return this.nextTokenStartSince(this.pos)
     }
-    
+
     nextTokenStartSince(pos: number): number {
         skipWhiteSpace.lastIndex = pos
         const skip = skipWhiteSpace.exec(this.input)
         return pos + skip![0].length
     }
-    
+
     lookaheadCharCode(): number {
         return this.input.charCodeAt(this.nextTokenStart())
+    }
+
+    // Tests whether parsed token is a contextual keyword.
+    isContextual(contextualKeyword: ContextualKeyword): boolean {
+        return this.contextualKeyword === contextualKeyword
+    }
+
+    isLookaheadContextual(contextualKeyword: ContextualKeyword): boolean {
+        const l = this.lookaheadTypeAndKeyword()
+        return l.type === tt.name && l.contextualKeyword === contextualKeyword
+    }
+
+    // Consumes contextual keyword if possible.
+    eatContextual(contextualKeyword: ContextualKeyword): boolean {
+        return this.contextualKeyword === contextualKeyword && this.eat(tt.name)
+    }
+
+    // Asserts that following token is given contextual keyword.
+    expectContextual(contextualKeyword: ContextualKeyword): void {
+        if (!this.eatContextual(contextualKeyword)) {
+            this.unexpected()
+        }
+    }
+
+    // Test whether a semicolon can be inserted at the current position.
+    canInsertSemicolon(): boolean {
+        return this.match(tt.eof) || this.match(tt.braceR) || this.hasPrecedingLineBreak()
+    }
+
+    hasPrecedingLineBreak(): boolean {
+        const prevToken = this.tokens[this.tokens.length - 1]
+        const lastTokEnd = prevToken ? prevToken.end : 0
+        for (let i = lastTokEnd; i < this.start; i++) {
+            const code = this.input.charCodeAt(i)
+            if (
+                code === charCodes.lineFeed ||
+                code === charCodes.carriageReturn ||
+                code === 0x2028 ||
+                code === 0x2029
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+
+    hasFollowingLineBreak(): boolean {
+        const nextStart = this.nextTokenStart()
+        for (let i = this.end; i < nextStart; i++) {
+            const code = this.input.charCodeAt(i)
+            if (
+                code === charCodes.lineFeed ||
+                code === charCodes.carriageReturn ||
+                code === 0x2028 ||
+                code === 0x2029
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+
+    isLineTerminator(): boolean {
+        return this.eat(tt.semi) || this.canInsertSemicolon()
+    }
+
+    // Consume a semicolon, or, failing that, see if we are allowed to
+    // pretend that there is a semicolon at this position.
+    semicolon(): void {
+        if (!this.isLineTerminator()) {
+            this.unexpected('Unexpected token, expected ";"')
+        }
+    }
+
+    // Expect a token of a given type. If found, consume it, otherwise,
+    // raise an unexpected token error at given pos.
+    expect(type: TokenType): void {
+        const matched = this.eat(type)
+        if (!matched) {
+            this.unexpected(`Unexpected token, expected "${formatTokenType(type)}"`)
+        }
+    }
+
+    /**
+     * Transition the parser to an error state. All code needs to be written to naturally unwind in this
+     * state, which allows us to backtrack without exceptions and without error plumbing everywhere.
+     */
+    unexpected(message: string = "Unexpected token", pos: number = state.start): void {
+        if (this.error) {
+            return
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err: any = new SyntaxError(message)
+        err.pos = pos
+        this.error = err
+        this.pos = this.input.length
+        this.scanner.finishToken(tt.eof)
     }
 }

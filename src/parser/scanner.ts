@@ -1,5 +1,4 @@
 import type { State } from './state'
-import { unexpected } from './traverser'
 import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, charCodes } from './util'
 import { ContextualKeyword } from './keywords'
 import { TokenType as tt, type TokenType } from './generated/types'
@@ -89,7 +88,7 @@ export function createScanner(state: State) {
         ) {
             state.pos++
             if (state.pos > end) {
-                unexpected("Unterminated comment", state.pos - 2)
+                state.unexpected("Unterminated comment", state.pos - 2)
                 return
             }
         }
@@ -128,7 +127,7 @@ export function createScanner(state: State) {
         let inClass = false
         for (; ;) {
             if (state.pos >= end) {
-                unexpected("Unterminated regular expression", start)
+                state.unexpected("Unterminated regular expression", start)
                 return
             }
             const code = input.charCodeAt(state.pos)
@@ -304,7 +303,7 @@ export function createScanner(state: State) {
         state.pos++
         for (; ;) {
             if (state.pos >= end) {
-                unexpected("Unterminated string constant")
+                state.unexpected("Unterminated string constant")
                 return
             }
             const ch = input.charCodeAt(state.pos)
@@ -323,7 +322,7 @@ export function createScanner(state: State) {
     function readTmplToken(): void {
         for (; ;) {
             if (state.pos >= end) {
-                unexpected("Unterminated template")
+                state.unexpected("Unterminated template")
                 return
             }
             const ch = input.charCodeAt(state.pos)
@@ -759,7 +758,7 @@ export function createScanner(state: State) {
                 break
         }
     
-        unexpected(`Unexpected character '${String.fromCharCode(code)}'`, state.pos)
+        state.unexpected(`Unexpected character '${String.fromCharCode(code)}'`, state.pos)
     }    
 
     function readToken(code: number): void {
@@ -790,7 +789,7 @@ export function createScanner(state: State) {
                 tokens[tokens.length - 1].start >= end &&
                 tokens[tokens.length - 2].start >= end
             ) {
-                unexpected("Unexpectedly reached the end of input.")
+                state.unexpected("Unexpectedly reached the end of input.")
             }
             finishToken(tt.eof)
             return

@@ -6,7 +6,6 @@ import {
 import {TokenType as tt} from "../../generated/types";
 import {state} from "../../state";
 import {parseExpression, parseMaybeAssign} from "../../traverser";
-import {expect, unexpected} from "../../traverser";
 import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util";
 import {charCodes} from "../../util";
 import {tsTryParseJSXTypeArgument} from "../typescript";
@@ -33,7 +32,7 @@ function jsxReadToken(): void {
   let sawNonWhitespace = false;
   while (true) {
     if (state.pos >= state.input.length) {
-      unexpected("Unterminated JSX contents");
+      state.unexpected("Unterminated JSX contents");
       return;
     }
 
@@ -70,7 +69,7 @@ function jsxReadString(quote: number): void {
   state.pos++;
   for (;;) {
     if (state.pos >= state.input.length) {
-      unexpected("Unterminated string constant");
+      state.unexpected("Unterminated string constant");
       return;
     }
 
@@ -95,7 +94,7 @@ function jsxReadWord(): void {
   let ch: number;
   do {
     if (state.pos > state.input.length) {
-      unexpected("Unexpectedly reached the end of input.");
+      state.unexpected("Unexpectedly reached the end of input.");
       return;
     }
     ch = state.input.charCodeAt(++state.pos);
@@ -163,14 +162,14 @@ function jsxParseAttributeValue(): void {
       return;
 
     default:
-      unexpected("JSX value should be either an expression or a quoted JSX text");
+      state.unexpected("JSX value should be either an expression or a quoted JSX text");
   }
 }
 
 // Parse JSX spread child, after already processing the {
 // Does not parse the closing }
 function jsxParseSpreadChild(): void {
-  expect(tt.ellipsis);
+  state.expect(tt.ellipsis);
   parseExpression();
 }
 
@@ -190,7 +189,7 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
   while (!state.match(tt.slash) && !state.match(tt.jsxTagEnd) && !state.error) {
     if (state.eat(tt.braceL)) {
       hasSeenPropSpread = true;
-      expect(tt.ellipsis);
+      state.expect(tt.ellipsis);
       parseMaybeAssign();
       // }
       nextJSXTagToken();
@@ -295,7 +294,7 @@ function jsxParseElementAt(): void {
 
         // istanbul ignore next - should never happen
         default:
-          unexpected();
+          state.unexpected();
           return;
       }
     }
@@ -349,7 +348,7 @@ export function nextJSXTagToken(): void {
         state.scanner.finishToken(tt.colon);
         break;
       default:
-        unexpected();
+        state.unexpected();
     }
   }
 }
