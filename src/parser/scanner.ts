@@ -1,5 +1,5 @@
 import type { State } from './state'
-import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, charCodes } from './util'
+import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, Charcode } from './charcode'
 import { ContextualKeyword } from './keywords'
 import { TokenType as tt, type TokenType } from './generated/types'
 import { READ_WORD_TREE } from './generated/readWordTree'
@@ -29,25 +29,25 @@ export function createScanner(state: State) {
         while (state.pos < end) {
             const ch = input.charCodeAt(state.pos)
             switch (ch) {
-                case charCodes.carriageReturn:
-                    if (input.charCodeAt(state.pos + 1) === charCodes.lineFeed) {
+                case Charcode.carriageReturn:
+                    if (input.charCodeAt(state.pos + 1) === Charcode.lineFeed) {
                         ++state.pos
                     }
 
-                case charCodes.lineFeed:
-                case charCodes.lineSeparator:
-                case charCodes.paragraphSeparator:
+                case Charcode.lineFeed:
+                case Charcode.lineSeparator:
+                case Charcode.paragraphSeparator:
                     ++state.pos
                     break
 
-                case charCodes.slash:
+                case Charcode.slash:
                     switch (input.charCodeAt(state.pos + 1)) {
-                        case charCodes.asterisk:
+                        case Charcode.asterisk:
                             state.pos += 2
                             skipBlockComment()
                             break
 
-                        case charCodes.slash:
+                        case Charcode.slash:
                             skipLineComment(2)
                             break
 
@@ -70,10 +70,10 @@ export function createScanner(state: State) {
         let ch = input.charCodeAt((state.pos += startSkip))
         if (state.pos < end) {
             while (
-                ch !== charCodes.lineFeed &&
-                ch !== charCodes.carriageReturn &&
-                ch !== charCodes.lineSeparator &&
-                ch !== charCodes.paragraphSeparator &&
+                ch !== Charcode.lineFeed &&
+                ch !== Charcode.carriageReturn &&
+                ch !== Charcode.lineSeparator &&
+                ch !== Charcode.paragraphSeparator &&
                 ++state.pos < end
             ) {
                 ch = input.charCodeAt(state.pos)
@@ -83,8 +83,8 @@ export function createScanner(state: State) {
 
     function skipBlockComment(): void {
         while (
-            input.charCodeAt(state.pos) !== charCodes.asterisk ||
-            input.charCodeAt(state.pos + 1) !== charCodes.slash
+            input.charCodeAt(state.pos) !== Charcode.asterisk ||
+            input.charCodeAt(state.pos + 1) !== Charcode.slash
         ) {
             state.pos++
             if (state.pos > end) {
@@ -103,13 +103,13 @@ export function createScanner(state: State) {
             const ch = input.charCodeAt(state.pos)
             if (IS_IDENTIFIER_CHAR[ch]) {
                 state.pos++
-            } else if (ch === charCodes.backslash) {
+            } else if (ch === Charcode.backslash) {
                 // \u
                 state.pos += 2
-                if (input.charCodeAt(state.pos) === charCodes.leftCurlyBrace) {
+                if (input.charCodeAt(state.pos) === Charcode.leftCurlyBrace) {
                     while (
                         state.pos < end &&
-                        input.charCodeAt(state.pos) !== charCodes.rightCurlyBrace
+                        input.charCodeAt(state.pos) !== Charcode.rightCurlyBrace
                     ) {
                         state.pos++
                     }
@@ -134,14 +134,14 @@ export function createScanner(state: State) {
             if (escaped) {
                 escaped = false
             } else {
-                if (code === charCodes.leftSquareBracket) {
+                if (code === Charcode.leftSquareBracket) {
                     inClass = true
-                } else if (code === charCodes.rightSquareBracket && inClass) {
+                } else if (code === Charcode.rightSquareBracket && inClass) {
                     inClass = false
-                } else if (code === charCodes.slash && !inClass) {
+                } else if (code === Charcode.slash && !inClass) {
                     break
                 }
-                escaped = code === charCodes.backslash
+                escaped = code === Charcode.backslash
             }
             ++state.pos
         }
@@ -164,10 +164,10 @@ export function createScanner(state: State) {
         let pos = state.pos
         while (pos < end) {
             code = input.charCodeAt(pos)
-            if (code < charCodes.lowercaseA || code > charCodes.lowercaseZ) {
+            if (code < Charcode.lowercaseA || code > Charcode.lowercaseZ) {
                 break
             }
-            const nxt = READ_WORD_TREE[treePos + (code - charCodes.lowercaseA) + 1]
+            const nxt = READ_WORD_TREE[treePos + (code - Charcode.lowercaseA) + 1]
             if (nxt === -1) {
                 break
             } else {
@@ -191,16 +191,16 @@ export function createScanner(state: State) {
             const ch = input.charCodeAt(pos)
             if (IS_IDENTIFIER_CHAR[ch]) {
                 pos++
-            } else if (ch === charCodes.backslash) {
+            } else if (ch === Charcode.backslash) {
                 // \u
                 pos += 2
-                if (input.charCodeAt(pos) === charCodes.leftCurlyBrace) {
-                    while (pos < end && input.charCodeAt(pos) !== charCodes.rightCurlyBrace) {
+                if (input.charCodeAt(pos) === Charcode.leftCurlyBrace) {
+                    while (pos < end && input.charCodeAt(pos) !== Charcode.rightCurlyBrace) {
                         pos++
                     }
                     pos++
                 }
-            } else if (ch === charCodes.atSign && input.charCodeAt(pos + 1) === charCodes.atSign) {
+            } else if (ch === Charcode.atSign && input.charCodeAt(pos + 1) === Charcode.atSign) {
                 pos += 2
             } else {
                 break
@@ -218,7 +218,7 @@ export function createScanner(state: State) {
     function readInt(): void {
         while (true) {
             const code = input.charCodeAt(state.pos)
-            if ((code >= charCodes.digit0 && code <= charCodes.digit9) || code === charCodes.underscore) {
+            if ((code >= Charcode.digit0 && code <= Charcode.digit9) || code === Charcode.underscore) {
                 state.pos++
             } else {
                 break
@@ -233,10 +233,10 @@ export function createScanner(state: State) {
         while (true) {
             const code = input.charCodeAt(state.pos)
             if (
-                (code >= charCodes.digit0 && code <= charCodes.digit9) ||
-                (code >= charCodes.lowercaseA && code <= charCodes.lowercaseF) ||
-                (code >= charCodes.uppercaseA && code <= charCodes.uppercaseF) ||
-                code === charCodes.underscore
+                (code >= Charcode.digit0 && code <= Charcode.digit9) ||
+                (code >= Charcode.lowercaseA && code <= Charcode.lowercaseF) ||
+                (code >= Charcode.uppercaseA && code <= Charcode.uppercaseF) ||
+                code === Charcode.underscore
             ) {
                 state.pos++
             } else {
@@ -245,7 +245,7 @@ export function createScanner(state: State) {
         }
 
         const nextChar = input.charCodeAt(state.pos)
-        if (nextChar === charCodes.lowercaseN) {
+        if (nextChar === Charcode.lowercaseN) {
             ++state.pos
             finishToken(tt.bigint)
         } else {
@@ -263,25 +263,25 @@ export function createScanner(state: State) {
         }
 
         let nextChar = input.charCodeAt(state.pos)
-        if (nextChar === charCodes.dot) {
+        if (nextChar === Charcode.dot) {
             ++state.pos
             readInt()
             nextChar = input.charCodeAt(state.pos)
         }
 
-        if (nextChar === charCodes.uppercaseE || nextChar === charCodes.lowercaseE) {
+        if (nextChar === Charcode.uppercaseE || nextChar === Charcode.lowercaseE) {
             nextChar = input.charCodeAt(++state.pos)
-            if (nextChar === charCodes.plusSign || nextChar === charCodes.dash) {
+            if (nextChar === Charcode.plusSign || nextChar === Charcode.dash) {
                 ++state.pos
             }
             readInt()
             nextChar = input.charCodeAt(state.pos)
         }
 
-        if (nextChar === charCodes.lowercaseN) {
+        if (nextChar === Charcode.lowercaseN) {
             ++state.pos
             isBigInt = true
-        } else if (nextChar === charCodes.lowercaseM) {
+        } else if (nextChar === Charcode.lowercaseM) {
             ++state.pos
             isDecimal = true
         }
@@ -307,7 +307,7 @@ export function createScanner(state: State) {
                 return
             }
             const ch = input.charCodeAt(state.pos)
-            if (ch === charCodes.backslash) {
+            if (ch === Charcode.backslash) {
                 state.pos++
             } else if (ch === quote) {
                 break
@@ -327,11 +327,11 @@ export function createScanner(state: State) {
             }
             const ch = input.charCodeAt(state.pos)
             if (
-                ch === charCodes.graveAccent ||
-                (ch === charCodes.dollarSign && input.charCodeAt(state.pos + 1) === charCodes.leftCurlyBrace)
+                ch === Charcode.graveAccent ||
+                (ch === Charcode.dollarSign && input.charCodeAt(state.pos + 1) === Charcode.leftCurlyBrace)
             ) {
                 if (state.pos === state.start && state.match(tt.template)) {
-                    if (ch === charCodes.dollarSign) {
+                    if (ch === Charcode.dollarSign) {
                         state.pos += 2
                         finishToken(tt.dollarBraceL)
                         return
@@ -344,7 +344,7 @@ export function createScanner(state: State) {
                 finishToken(tt.template)
                 return
             }
-            if (ch === charCodes.backslash) {
+            if (ch === Charcode.backslash) {
                 state.pos++
             }
             state.pos++
@@ -353,12 +353,12 @@ export function createScanner(state: State) {
 
     function readToken_dot(): void {
         const nextChar = input.charCodeAt(state.pos + 1)
-        if (nextChar >= charCodes.digit0 && nextChar <= charCodes.digit9) {
+        if (nextChar >= Charcode.digit0 && nextChar <= Charcode.digit9) {
             readNumber(true)
             return
         }
     
-        if (nextChar === charCodes.dot && input.charCodeAt(state.pos + 2) === charCodes.dot) {
+        if (nextChar === Charcode.dot && input.charCodeAt(state.pos + 2) === Charcode.dot) {
             state.pos += 3
             finishToken(tt.ellipsis)
         } else {
@@ -369,7 +369,7 @@ export function createScanner(state: State) {
     
     function readToken_slash(): void {
         const nextChar = input.charCodeAt(state.pos + 1)
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             finishOp(tt.assign, 2)
         } else {
             finishOp(tt.slash, 1)
@@ -378,12 +378,12 @@ export function createScanner(state: State) {
     
     function readToken_mult_modulo(code: number): void {
         // '%*'
-        let tokenType = code === charCodes.asterisk ? tt.star : tt.modulo
+        let tokenType = code === Charcode.asterisk ? tt.star : tt.modulo
         let width = 1
         let nextChar = input.charCodeAt(state.pos + 1)
     
         // Exponentiation operator **
-        if (code === charCodes.asterisk && nextChar === charCodes.asterisk) {
+        if (code === Charcode.asterisk && nextChar === Charcode.asterisk) {
             width++
             nextChar = input.charCodeAt(state.pos + 2)
             tokenType = tt.exponent
@@ -391,8 +391,8 @@ export function createScanner(state: State) {
     
         // Match *= or %=, disallowing *=> which can be valid in flow.
         if (
-            nextChar === charCodes.equalsTo &&
-            input.charCodeAt(state.pos + 2) !== charCodes.greaterThan
+            nextChar === Charcode.equalsTo &&
+            input.charCodeAt(state.pos + 2) !== Charcode.greaterThan
         ) {
             width++
             tokenType = tt.assign
@@ -406,40 +406,40 @@ export function createScanner(state: State) {
         const nextChar = input.charCodeAt(state.pos + 1)
     
         if (nextChar === code) {
-            if (input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
+            if (input.charCodeAt(state.pos + 2) === Charcode.equalsTo) {
                 // ||= or &&=
                 finishOp(tt.assign, 3)
             } else {
                 // || or &&
-                finishOp(code === charCodes.verticalBar ? tt.logicalOR : tt.logicalAND, 2)
+                finishOp(code === Charcode.verticalBar ? tt.logicalOR : tt.logicalAND, 2)
             }
             return
         }
     
-        if (code === charCodes.verticalBar) {
+        if (code === Charcode.verticalBar) {
             // '|>'
-            if (nextChar === charCodes.greaterThan) {
+            if (nextChar === Charcode.greaterThan) {
                 finishOp(tt.pipeline, 2)
                 return
-            } else if (nextChar === charCodes.rightCurlyBrace && state.isFlowEnabled) {
+            } else if (nextChar === Charcode.rightCurlyBrace && state.isFlowEnabled) {
                 // '|}'
                 finishOp(tt.braceBarR, 2)
                 return
             }
         }
     
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             finishOp(tt.assign, 2)
             return
         }
     
-        finishOp(code === charCodes.verticalBar ? tt.bitwiseOR : tt.bitwiseAND, 1)
+        finishOp(code === Charcode.verticalBar ? tt.bitwiseOR : tt.bitwiseAND, 1)
     }
     
     function readToken_caret(): void {
         // '^'
         const nextChar = input.charCodeAt(state.pos + 1)
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             finishOp(tt.assign, 2)
         } else {
             finishOp(tt.bitwiseXOR, 1)
@@ -456,9 +456,9 @@ export function createScanner(state: State) {
             return
         }
     
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             finishOp(tt.assign, 2)
-        } else if (code === charCodes.plusSign) {
+        } else if (code === Charcode.plusSign) {
             finishOp(tt.plus, 1)
         } else {
             finishOp(tt.minus, 1)
@@ -468,8 +468,8 @@ export function createScanner(state: State) {
     function readToken_lt(): void {
         const nextChar = input.charCodeAt(state.pos + 1)
     
-        if (nextChar === charCodes.lessThan) {
-            if (input.charCodeAt(state.pos + 2) === charCodes.equalsTo) {
+        if (nextChar === Charcode.lessThan) {
+            if (input.charCodeAt(state.pos + 2) === Charcode.equalsTo) {
                 finishOp(tt.assign, 3)
                 return
             }
@@ -495,7 +495,7 @@ export function createScanner(state: State) {
             return
         }
     
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             // <=
             finishOp(tt.relationalOrEqual, 2)
         } else {
@@ -513,9 +513,9 @@ export function createScanner(state: State) {
     
         const nextChar = input.charCodeAt(state.pos + 1)
     
-        if (nextChar === charCodes.greaterThan) {
-            const size = input.charCodeAt(state.pos + 2) === charCodes.greaterThan ? 3 : 2
-            if (input.charCodeAt(state.pos + size) === charCodes.equalsTo) {
+        if (nextChar === Charcode.greaterThan) {
+            const size = input.charCodeAt(state.pos + 2) === Charcode.greaterThan ? 3 : 2
+            if (input.charCodeAt(state.pos + size) === Charcode.equalsTo) {
                 finishOp(tt.assign, size + 1)
                 return
             }
@@ -523,7 +523,7 @@ export function createScanner(state: State) {
             return
         }
     
-        if (nextChar === charCodes.equalsTo) {
+        if (nextChar === Charcode.equalsTo) {
             // >=
             finishOp(tt.relationalOrEqual, 2)
         } else {
@@ -555,17 +555,17 @@ export function createScanner(state: State) {
     function readToken_eq_excl(code: number): void {
         // '=!'
         const nextChar = input.charCodeAt(state.pos + 1)
-        if (nextChar === charCodes.equalsTo) {
-            finishOp(tt.equality, input.charCodeAt(state.pos + 2) === charCodes.equalsTo ? 3 : 2)
+        if (nextChar === Charcode.equalsTo) {
+            finishOp(tt.equality, input.charCodeAt(state.pos + 2) === Charcode.equalsTo ? 3 : 2)
             return
         }
-        if (code === charCodes.equalsTo && nextChar === charCodes.greaterThan) {
+        if (code === Charcode.equalsTo && nextChar === Charcode.greaterThan) {
             // '=>'
             state.pos += 2
             finishToken(tt.arrow)
             return
         }
-        finishOp(code === charCodes.equalsTo ? tt.eq : tt.bang, 1)
+        finishOp(code === Charcode.equalsTo ? tt.eq : tt.bang, 1)
     }
     
     function readToken_question(): void {
@@ -573,12 +573,12 @@ export function createScanner(state: State) {
         const nextChar = input.charCodeAt(state.pos + 1)
         const nextChar2 = input.charCodeAt(state.pos + 2)
         if (
-            nextChar === charCodes.questionMark &&
+            nextChar === Charcode.questionMark &&
             // In Flow (but not TypeScript), ??string is a valid type that should be
             // tokenized as two individual ? tokens.
             !(state.isFlowEnabled && state.isType)
         ) {
-            if (nextChar2 === charCodes.equalsTo) {
+            if (nextChar2 === Charcode.equalsTo) {
                 // '??='
                 finishOp(tt.assign, 3)
             } else {
@@ -586,8 +586,8 @@ export function createScanner(state: State) {
                 finishOp(tt.nullishCoalescing, 2)
             }
         } else if (
-            nextChar === charCodes.dot &&
-            !(nextChar2 >= charCodes.digit0 && nextChar2 <= charCodes.digit9)
+            nextChar === Charcode.dot &&
+            !(nextChar2 >= Charcode.digit0 && nextChar2 <= Charcode.digit9)
         ) {
             // '.' not followed by a number
             state.pos += 2
@@ -600,7 +600,7 @@ export function createScanner(state: State) {
 
     function getTokenFromCode(code: number): void {
         switch (code) {
-            case charCodes.numberSign:
+            case Charcode.numberSign:
                 ++state.pos
                 finishToken(tt.hash)
                 return
@@ -608,38 +608,38 @@ export function createScanner(state: State) {
             // The interpretation of a dot depends on whether it is followed
             // by a digit or another two dots.
     
-            case charCodes.dot:
+            case Charcode.dot:
                 readToken_dot()
                 return
     
             // Punctuation tokens.
-            case charCodes.leftParenthesis:
+            case Charcode.leftParenthesis:
                 ++state.pos
                 finishToken(tt.parenL)
                 return
-            case charCodes.rightParenthesis:
+            case Charcode.rightParenthesis:
                 ++state.pos
                 finishToken(tt.parenR)
                 return
-            case charCodes.semicolon:
+            case Charcode.semicolon:
                 ++state.pos
                 finishToken(tt.semi)
                 return
-            case charCodes.comma:
+            case Charcode.comma:
                 ++state.pos
                 finishToken(tt.comma)
                 return
-            case charCodes.leftSquareBracket:
+            case Charcode.leftSquareBracket:
                 ++state.pos
                 finishToken(tt.bracketL)
                 return
-            case charCodes.rightSquareBracket:
+            case Charcode.rightSquareBracket:
                 ++state.pos
                 finishToken(tt.bracketR)
                 return
     
-            case charCodes.leftCurlyBrace:
-                if (state.isFlowEnabled && input.charCodeAt(state.pos + 1) === charCodes.verticalBar) {
+            case Charcode.leftCurlyBrace:
+                if (state.isFlowEnabled && input.charCodeAt(state.pos + 1) === Charcode.verticalBar) {
                     finishOp(tt.braceBarL, 2)
                 } else {
                     ++state.pos
@@ -647,13 +647,13 @@ export function createScanner(state: State) {
                 }
                 return
     
-            case charCodes.rightCurlyBrace:
+            case Charcode.rightCurlyBrace:
                 ++state.pos
                 finishToken(tt.braceR)
                 return
     
-            case charCodes.colon:
-                if (input.charCodeAt(state.pos + 1) === charCodes.colon) {
+            case Charcode.colon:
+                if (input.charCodeAt(state.pos + 1) === Charcode.colon) {
                     finishOp(tt.doubleColon, 2)
                 } else {
                     ++state.pos
@@ -661,29 +661,29 @@ export function createScanner(state: State) {
                 }
                 return
     
-            case charCodes.questionMark:
+            case Charcode.questionMark:
                 readToken_question()
                 return
-            case charCodes.atSign:
+            case Charcode.atSign:
                 ++state.pos
                 finishToken(tt.at)
                 return
     
-            case charCodes.graveAccent:
+            case Charcode.graveAccent:
                 ++state.pos
                 finishToken(tt.backQuote)
                 return
     
-            case charCodes.digit0: {
+            case Charcode.digit0: {
                 const nextChar = input.charCodeAt(state.pos + 1)
                 // '0x', '0X', '0o', '0O', '0b', '0B'
                 if (
-                    nextChar === charCodes.lowercaseX ||
-                    nextChar === charCodes.uppercaseX ||
-                    nextChar === charCodes.lowercaseO ||
-                    nextChar === charCodes.uppercaseO ||
-                    nextChar === charCodes.lowercaseB ||
-                    nextChar === charCodes.uppercaseB
+                    nextChar === Charcode.lowercaseX ||
+                    nextChar === Charcode.uppercaseX ||
+                    nextChar === Charcode.lowercaseO ||
+                    nextChar === Charcode.uppercaseO ||
+                    nextChar === Charcode.lowercaseB ||
+                    nextChar === Charcode.uppercaseB
                 ) {
                     readRadixNumber()
                     return
@@ -691,21 +691,21 @@ export function createScanner(state: State) {
             }
             // Anything else beginning with a digit is an integer, octal
             // number, or float.
-            case charCodes.digit1:
-            case charCodes.digit2:
-            case charCodes.digit3:
-            case charCodes.digit4:
-            case charCodes.digit5:
-            case charCodes.digit6:
-            case charCodes.digit7:
-            case charCodes.digit8:
-            case charCodes.digit9:
+            case Charcode.digit1:
+            case Charcode.digit2:
+            case Charcode.digit3:
+            case Charcode.digit4:
+            case Charcode.digit5:
+            case Charcode.digit6:
+            case Charcode.digit7:
+            case Charcode.digit8:
+            case Charcode.digit9:
                 readNumber(false)
                 return
     
             // Quotes produce strings.
-            case charCodes.quotationMark:
-            case charCodes.apostrophe:
+            case Charcode.quotationMark:
+            case Charcode.apostrophe:
                 readString(code)
                 return
     
@@ -714,43 +714,43 @@ export function createScanner(state: State) {
             // characters it is given as second argument, and returns a token
             // of the type given by its first argument.
     
-            case charCodes.slash:
+            case Charcode.slash:
                 readToken_slash()
                 return
     
-            case charCodes.percentSign:
-            case charCodes.asterisk:
+            case Charcode.percentSign:
+            case Charcode.asterisk:
                 readToken_mult_modulo(code)
                 return
     
-            case charCodes.verticalBar:
-            case charCodes.ampersand:
+            case Charcode.verticalBar:
+            case Charcode.ampersand:
                 readToken_pipe_amp(code)
                 return
     
-            case charCodes.caret:
+            case Charcode.caret:
                 readToken_caret()
                 return
     
-            case charCodes.plusSign:
-            case charCodes.dash:
+            case Charcode.plusSign:
+            case Charcode.dash:
                 readToken_plus_min(code)
                 return
     
-            case charCodes.lessThan:
+            case Charcode.lessThan:
                 readToken_lt()
                 return
     
-            case charCodes.greaterThan:
+            case Charcode.greaterThan:
                 readToken_gt()
                 return
     
-            case charCodes.equalsTo:
-            case charCodes.exclamationMark:
+            case Charcode.equalsTo:
+            case Charcode.exclamationMark:
                 readToken_eq_excl(code)
                 return
     
-            case charCodes.tilde:
+            case Charcode.tilde:
                 finishOp(tt.tilde, 1)
                 return
     
@@ -766,8 +766,8 @@ export function createScanner(state: State) {
         // identifiers, so '\' also dispatches to that.
         if (
             IS_IDENTIFIER_START[code] ||
-            code === charCodes.backslash ||
-            (code === charCodes.atSign && input.charCodeAt(state.pos + 1) === charCodes.atSign)
+            code === Charcode.backslash ||
+            (code === Charcode.atSign && input.charCodeAt(state.pos + 1) === Charcode.atSign)
         ) {
             readWord()
         } else {

@@ -61,7 +61,7 @@ import {
 } from "./token"
 import { ContextualKeyword } from './keywords'
 import { TokenType, TokenType as tt } from "./generated/types"
-import { IS_IDENTIFIER_START, charCodes } from "./util"
+import { IS_IDENTIFIER_START, Charcode } from "./charcode"
 import { Scope, state } from './state'
 
 // #region lval.ts -------------------------------------------------------------
@@ -367,7 +367,7 @@ export function parseMaybeUnary(): boolean {
     }
     if (
         state.isContextual(ContextualKeyword._module) &&
-        state.lookaheadCharCode() === charCodes.leftCurlyBrace &&
+        state.lookaheadCharCode() === Charcode.leftCurlyBrace &&
         !state.hasFollowingLineBreak()
     ) {
         parseModuleExpression()
@@ -706,7 +706,7 @@ export function parseExprAtom(): boolean {
 
         case tt.hash: {
             const code = state.lookaheadCharCode()
-            if (IS_IDENTIFIER_START[code] || code === charCodes.backslash) {
+            if (IS_IDENTIFIER_START[code] || code === Charcode.backslash) {
                 parseMaybePrivateName()
             } else {
                 state.next()
@@ -2120,7 +2120,7 @@ function isExportDefaultSpecifier(): boolean {
     // lookahead again when `export default from` is seen
     if (hasFrom) {
         const nextAfterFrom = state.input.charCodeAt(state.nextTokenStartSince(_next + 4))
-        return nextAfterFrom === charCodes.quotationMark || nextAfterFrom === charCodes.apostrophe
+        return nextAfterFrom === Charcode.quotationMark || nextAfterFrom === Charcode.apostrophe
     }
     return false
 }
@@ -2416,7 +2416,7 @@ export function locationForIndex(pos: number): Loc {
     let line = 1
     let column = 1
     for (let i = 0; i < pos; i++) {
-        if (state.input.charCodeAt(i) === charCodes.lineFeed) {
+        if (state.input.charCodeAt(i) === Charcode.lineFeed) {
             line++
             column = 1
         } else {
@@ -2433,8 +2433,8 @@ export function parseFile(): File {
     // If enabled, skip leading hashbang line.
     if (
         state.pos === 0 &&
-        state.input.charCodeAt(0) === charCodes.numberSign &&
-        state.input.charCodeAt(1) === charCodes.exclamationMark
+        state.input.charCodeAt(0) === Charcode.numberSign &&
+        state.input.charCodeAt(1) === Charcode.exclamationMark
     ) {
         state.scanner.skipLineComment(2)
     }

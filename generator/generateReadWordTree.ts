@@ -1,4 +1,4 @@
-import {charCodes} from "../src/parser/util";
+import {Charcode} from "../src/parser/charcode";
 
 const KEYWORDS = [
   "break",
@@ -142,7 +142,7 @@ export default function generateReadWordTree(): string {
     for (let i = 0; i < name.length; i++) {
       const node = nodesByPrefix[name.slice(0, i)];
       const nextNode = nodesByPrefix[name.slice(0, i + 1)];
-      node.data[name.charCodeAt(i) - charCodes.lowercaseA + 1] = nextNode.start;
+      node.data[name.charCodeAt(i) - Charcode.lowercaseA + 1] = nextNode.start;
     }
   }
 

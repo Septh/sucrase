@@ -4,7 +4,7 @@ import type {NameManager} from "../managers/NameManager";
 import XHTMLEntities from "../parser/plugins/jsx/xhtml";
 import {JSXRole} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
-import {charCodes} from "../parser/util";
+import {Charcode} from "../parser/charcode";
 import type {TokenProcessor} from "../processors/TokenProcessor";
 import {getJSXPragmaInfo, type JSXPragmaInfo} from "../util/getJSXPragmaInfo";
 import type {RootTransformer} from "./RootTransformer";
@@ -567,7 +567,7 @@ export class JSXTransformer extends Transformer {
  */
 export function startsWithLowerCase(s: string): boolean {
   const firstChar = s.charCodeAt(0);
-  return firstChar >= charCodes.lowercaseA && firstChar <= charCodes.lowercaseZ;
+  return firstChar >= Charcode.lowercaseA && firstChar <= Charcode.lowercaseZ;
 }
 
 /**
@@ -721,13 +721,13 @@ function processEntity(text: string, indexAfterAmpersand: number): {entity: stri
 }
 
 function isDecimalDigit(code: number): boolean {
-  return code >= charCodes.digit0 && code <= charCodes.digit9;
+  return code >= Charcode.digit0 && code <= Charcode.digit9;
 }
 
 function isHexDigit(code: number): boolean {
   return (
-    (code >= charCodes.digit0 && code <= charCodes.digit9) ||
-    (code >= charCodes.lowercaseA && code <= charCodes.lowercaseF) ||
-    (code >= charCodes.uppercaseA && code <= charCodes.uppercaseF)
+    (code >= Charcode.digit0 && code <= Charcode.digit9) ||
+    (code >= Charcode.lowercaseA && code <= Charcode.lowercaseF) ||
+    (code >= Charcode.uppercaseA && code <= Charcode.uppercaseF)
   );
 }

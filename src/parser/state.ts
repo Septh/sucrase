@@ -2,7 +2,7 @@ import { type TokenType, TokenType as tt, formatTokenType } from './generated/ty
 import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'
-import { charCodes, skipWhiteSpace } from './util'
+import { Charcode, skipWhiteSpace } from './charcode'
 
 export let state: State
 
@@ -257,8 +257,8 @@ export class State {
         for (let i = lastTokEnd; i < this.start; i++) {
             const code = this.input.charCodeAt(i)
             if (
-                code === charCodes.lineFeed ||
-                code === charCodes.carriageReturn ||
+                code === Charcode.lineFeed ||
+                code === Charcode.carriageReturn ||
                 code === 0x2028 ||
                 code === 0x2029
             ) {
@@ -273,8 +273,8 @@ export class State {
         for (let i = this.end; i < nextStart; i++) {
             const code = this.input.charCodeAt(i)
             if (
-                code === charCodes.lineFeed ||
-                code === charCodes.carriageReturn ||
+                code === Charcode.lineFeed ||
+                code === Charcode.carriageReturn ||
                 code === 0x2028 ||
                 code === 0x2029
             ) {

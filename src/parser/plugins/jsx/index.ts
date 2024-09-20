@@ -6,8 +6,8 @@ import {
 import {TokenType as tt} from "../../generated/types";
 import {state} from "../../state";
 import {parseExpression, parseMaybeAssign} from "../../traverser";
-import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../util";
-import {charCodes} from "../../util";
+import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../charcode";
+import {Charcode} from "../../charcode";
 import {tsTryParseJSXTypeArgument} from "../typescript";
 
 /**
@@ -37,9 +37,9 @@ function jsxReadToken(): void {
     }
 
     const ch = state.input.charCodeAt(state.pos);
-    if (ch === charCodes.lessThan || ch === charCodes.leftCurlyBrace) {
+    if (ch === Charcode.lessThan || ch === Charcode.leftCurlyBrace) {
       if (state.pos === state.start) {
-        if (ch === charCodes.lessThan) {
+        if (ch === Charcode.lessThan) {
           state.pos++;
           state.scanner.finishToken(tt.jsxTagStart);
           return;
@@ -56,9 +56,9 @@ function jsxReadToken(): void {
     }
 
     // This is part of JSX text.
-    if (ch === charCodes.lineFeed) {
+    if (ch === Charcode.lineFeed) {
       sawNewline = true;
-    } else if (ch !== charCodes.space && ch !== charCodes.carriageReturn && ch !== charCodes.tab) {
+    } else if (ch !== Charcode.space && ch !== Charcode.carriageReturn && ch !== Charcode.tab) {
       sawNonWhitespace = true;
     }
     state.pos++;
@@ -98,7 +98,7 @@ function jsxReadWord(): void {
       return;
     }
     ch = state.input.charCodeAt(++state.pos);
-  } while (IS_IDENTIFIER_CHAR[ch] || ch === charCodes.dash);
+  } while (IS_IDENTIFIER_CHAR[ch] || ch === Charcode.dash);
   state.scanner.finishToken(tt.jsxName);
 }
 
@@ -137,7 +137,7 @@ function jsxParseElementName(): void {
   if (!hadDot) {
     const firstToken = state.tokens[firstTokenIndex];
     const firstChar = state.input.charCodeAt(firstToken.start);
-    if (firstChar >= charCodes.lowercaseA && firstChar <= charCodes.lowercaseZ) {
+    if (firstChar >= Charcode.lowercaseA && firstChar <= Charcode.lowercaseZ) {
       firstToken.identifierRole = null;
     }
   }
@@ -198,9 +198,9 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
     if (
       hasSeenPropSpread &&
       state.end - state.start === 3 &&
-      state.input.charCodeAt(state.start) === charCodes.lowercaseK &&
-      state.input.charCodeAt(state.start + 1) === charCodes.lowercaseE &&
-      state.input.charCodeAt(state.start + 2) === charCodes.lowercaseY
+      state.input.charCodeAt(state.start) === Charcode.lowercaseK &&
+      state.input.charCodeAt(state.start + 1) === Charcode.lowercaseE &&
+      state.input.charCodeAt(state.start + 2) === Charcode.lowercaseY
     ) {
       state.tokens[initialTokenIndex].jsxRole = JSXRole.KeyAfterPropSpread;
     }
@@ -320,31 +320,31 @@ export function nextJSXTagToken(): void {
 
   if (IS_IDENTIFIER_START[code]) {
     jsxReadWord();
-  } else if (code === charCodes.quotationMark || code === charCodes.apostrophe) {
+  } else if (code === Charcode.quotationMark || code === Charcode.apostrophe) {
     jsxReadString(code);
   } else {
     // The following tokens are just one character each.
     ++state.pos;
     switch (code) {
-      case charCodes.greaterThan:
+      case Charcode.greaterThan:
         state.scanner.finishToken(tt.jsxTagEnd);
         break;
-      case charCodes.lessThan:
+      case Charcode.lessThan:
         state.scanner.finishToken(tt.jsxTagStart);
         break;
-      case charCodes.slash:
+      case Charcode.slash:
         state.scanner.finishToken(tt.slash);
         break;
-      case charCodes.equalsTo:
+      case Charcode.equalsTo:
         state.scanner.finishToken(tt.eq);
         break;
-      case charCodes.leftCurlyBrace:
+      case Charcode.leftCurlyBrace:
         state.scanner.finishToken(tt.braceL);
         break;
-      case charCodes.dot:
+      case Charcode.dot:
         state.scanner.finishToken(tt.dot);
         break;
-      case charCodes.colon:
+      case Charcode.colon:
         state.scanner.finishToken(tt.colon);
         break;
       default:

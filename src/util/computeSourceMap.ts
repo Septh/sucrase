@@ -2,7 +2,7 @@ import {GenMapping, maybeAddSegment, toEncodedMap} from "@jridgewell/gen-mapping
 
 import type {SourceMapOptions} from "../index";
 import type {Token} from "../parser/token";
-import {charCodes} from "../parser/util";
+import {Charcode} from "../parser/charcode";
 import type {RootTransformerResult} from "../transformers/RootTransformer";
 
 export interface RawSourceMap {
@@ -54,7 +54,7 @@ export function computeSourceMap(
         currentMapping = rawMappings[tokenIndex];
       }
     }
-    if (generatedCode.charCodeAt(i) === charCodes.lineFeed) {
+    if (generatedCode.charCodeAt(i) === Charcode.lineFeed) {
       line++;
       lineStart = i + 1;
       if (currentMapping !== lineStart) {
@@ -81,7 +81,7 @@ function computeSourceColumns(code: string, tokens: Array<Token>): Array<number>
       tokenIndex++;
       currentMapping = tokens[tokenIndex].start;
     }
-    if (code.charCodeAt(i) === charCodes.lineFeed) {
+    if (code.charCodeAt(i) === Charcode.lineFeed) {
       lineStart = i + 1;
     }
   }
