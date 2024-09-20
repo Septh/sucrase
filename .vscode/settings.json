@@ -14,5 +14,6 @@
     },
   ],
   "javascript.preferences.importModuleSpecifierEnding": "auto",
-  "typescript.preferences.importModuleSpecifierEnding": "auto"
+  "typescript.preferences.importModuleSpecifierEnding": "auto",
+  "files.trimTrailingWhitespace": false
 }

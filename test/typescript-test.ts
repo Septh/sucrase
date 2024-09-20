@@ -1,4 +1,4 @@
-import type {Options} from "../src/Options";
+import type {Options} from "../src/options";
 import {
   CREATE_NAMED_EXPORT_FROM_PREFIX,
   CREATE_REQUIRE_PREFIX,

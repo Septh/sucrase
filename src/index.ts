@@ -1,50 +1,50 @@
-import {CJSImportProcessor} from "./processors/CJSImportProcessor";
-import {computeSourceMap, type RawSourceMap} from "./util/computeSourceMap";
-import {HelperManager} from "./managers/HelperManager";
-import {identifyShadowedGlobals} from "./util/identifyShadowedGlobals";
-import {NameManager} from "./managers/NameManager";
-import type {Options, SourceMapOptions, Transform} from "./Options";
-import {parse} from "./parser";
-import type {Scope} from "./parser/state";
-import {TokenProcessor} from "./processors/TokenProcessor";
-import {RootTransformer} from "./transformers/RootTransformer";
-import {formatTokens} from "./util/formatTokens";
-import {getTSImportedNames} from "./util/getTSImportedNames";
+import { CJSImportProcessor } from "./processors/CJSImportProcessor"
+import { computeSourceMap, type RawSourceMap } from "./util/computeSourceMap"
+import { HelperManager } from "./managers/HelperManager"
+import { identifyShadowedGlobals } from "./util/identifyShadowedGlobals"
+import { NameManager } from "./managers/NameManager"
+import type { Options, SourceMapOptions, Transform } from "./options"
+import { parse } from "./parser"
+import type { Scope } from "./parser/state"
+import { TokenProcessor } from "./processors/TokenProcessor"
+import { RootTransformer } from "./transformers/RootTransformer"
+import { formatTokens } from "./util/formatTokens"
+import { getTSImportedNames } from "./util/getTSImportedNames"
 
 export interface TransformResult {
-  code: string;
-  sourceMap?: RawSourceMap;
+  code: string
+  sourceMap?: RawSourceMap
 }
 
 export interface SucraseContext {
-  tokenProcessor: TokenProcessor;
-  scopes: Array<Scope>;
-  nameManager: NameManager;
-  importProcessor: CJSImportProcessor | null;
-  helperManager: HelperManager;
+  tokenProcessor: TokenProcessor
+  scopes: Array<Scope>
+  nameManager: NameManager
+  importProcessor: CJSImportProcessor | null
+  helperManager: HelperManager
 }
 
-export type {Options, SourceMapOptions, Transform};
+export type { Options, SourceMapOptions, Transform }
 
 export function getVersion(): string {
   /* istanbul ignore next */
-  return "3.35.0";
+  return "3.35.0"
 }
 
 export function transform(code: string, options: Options): TransformResult {
   try {
-    const sucraseContext = getSucraseContext(code, options);
+    const sucraseContext = getSucraseContext(code, options)
     const transformer = new RootTransformer(
       sucraseContext,
       options.transforms,
       Boolean(options.enableLegacyBabel5ModuleInterop),
       options,
-    );
-    const transformerResult = transformer.transform();
-    let result: TransformResult = {code: transformerResult.code};
+    )
+    const transformerResult = transformer.transform()
+    let result: TransformResult = { code: transformerResult.code }
     if (options.sourceMapOptions) {
       if (!options.filePath) {
-        throw new Error("filePath must be specified when generating a source map.");
+        throw new Error("filePath must be specified when generating a source map.")
       }
       result = {
         ...result,
@@ -55,15 +55,15 @@ export function transform(code: string, options: Options): TransformResult {
           code,
           sucraseContext.tokenProcessor.tokens,
         ),
-      };
+      }
     }
-    return result;
+    return result
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     if (options.filePath) {
-      e.message = `Error transforming ${options.filePath}: ${e.message}`;
+      e.message = `Error transforming ${options.filePath}: ${e.message}`
     }
-    throw e;
+    throw e
   }
 }
 
@@ -72,8 +72,8 @@ export function transform(code: string, options: Options): TransformResult {
  * diagnostic purposes.
  */
 export function getFormattedTokens(code: string, options: Options): string {
-  const tokens = getSucraseContext(code, options).tokenProcessor.tokens;
-  return formatTokens(code, tokens);
+  const tokens = getSucraseContext(code, options).tokenProcessor.tokens
+  return formatTokens(code, tokens)
 }
 
 /**
@@ -86,26 +86,26 @@ export function getFormattedTokens(code: string, options: Options): string {
  * being done.
  */
 function getSucraseContext(code: string, options: Options): SucraseContext {
-  const isJSXEnabled = options.transforms.includes("jsx");
-  const isTypeScriptEnabled = options.transforms.includes("typescript");
-  const isFlowEnabled = options.transforms.includes("flow");
-  const disableESTransforms = options.disableESTransforms === true;
-  const file = parse(code, isJSXEnabled, isTypeScriptEnabled, isFlowEnabled);
-  const tokens = file.tokens;
-  const scopes = file.scopes;
+  const isJSXEnabled = options.transforms.includes("jsx")
+  const isTypeScriptEnabled = options.transforms.includes("typescript")
+  const isFlowEnabled = options.transforms.includes("flow")
+  const disableESTransforms = options.disableESTransforms === true
+  const file = parse(code, isJSXEnabled, isTypeScriptEnabled, isFlowEnabled)
+  const tokens = file.tokens
+  const scopes = file.scopes
 
-  const nameManager = new NameManager(code, tokens);
-  const helperManager = new HelperManager(nameManager);
+  const nameManager = new NameManager(code, tokens)
+  const helperManager = new HelperManager(nameManager)
   const tokenProcessor = new TokenProcessor(
     code,
     tokens,
     isFlowEnabled,
     disableESTransforms,
     helperManager,
-  );
-  const enableLegacyTypeScriptModuleInterop = Boolean(options.enableLegacyTypeScriptModuleInterop);
+  )
+  const enableLegacyTypeScriptModuleInterop = Boolean(options.enableLegacyTypeScriptModuleInterop)
 
-  let importProcessor = null;
+  let importProcessor = null
   if (options.transforms.includes("imports")) {
     importProcessor = new CJSImportProcessor(
       nameManager,
@@ -115,17 +115,17 @@ function getSucraseContext(code: string, options: Options): SucraseContext {
       options.transforms.includes("typescript"),
       Boolean(options.keepUnusedImports),
       helperManager,
-    );
-    importProcessor.preprocessTokens();
+    )
+    importProcessor.preprocessTokens()
     // We need to mark shadowed globals after processing imports so we know that the globals are,
     // but before type-only import pruning, since that relies on shadowing information.
-    identifyShadowedGlobals(tokenProcessor, scopes, importProcessor.getGlobalNames());
+    identifyShadowedGlobals(tokenProcessor, scopes, importProcessor.getGlobalNames())
     if (options.transforms.includes("typescript") && !options.keepUnusedImports) {
-      importProcessor.pruneTypeOnlyImports();
+      importProcessor.pruneTypeOnlyImports()
     }
   } else if (options.transforms.includes("typescript") && !options.keepUnusedImports) {
     // Shadowed global detection is needed for TS implicit elision of imported names.
-    identifyShadowedGlobals(tokenProcessor, scopes, getTSImportedNames(tokenProcessor));
+    identifyShadowedGlobals(tokenProcessor, scopes, getTSImportedNames(tokenProcessor))
   }
-  return {tokenProcessor, scopes, nameManager, importProcessor, helperManager};
+  return { tokenProcessor, scopes, nameManager, importProcessor, helperManager }
 }
