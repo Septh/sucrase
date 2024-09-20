@@ -1,5 +1,5 @@
-import type {Token} from "./parser/token";
-import {getIdentifierNames} from "./util/getIdentifierNames";
+import type {Token} from "../parser/token";
+import {getIdentifierNames} from "../util/getIdentifierNames";
 
 export class NameManager {
   private readonly usedNames: Set<string> = new Set();

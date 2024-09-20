@@ -2,10 +2,10 @@ import {
   isBlockScopedDeclaration,
   isFunctionScopedDeclaration,
   isNonTopLevelDeclaration,
-} from "./parser/token";
-import type {Scope} from "./parser/state";
-import {TokenType as tt} from "./parser/generated/types";
-import type {TokenProcessor} from "./TokenProcessor";
+} from "../parser/token";
+import type {Scope} from "../parser/state";
+import {TokenType as tt} from "../parser/generated/types";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 
 /**
  * Traverse the given tokens and modify them if necessary to indicate that some names shadow global

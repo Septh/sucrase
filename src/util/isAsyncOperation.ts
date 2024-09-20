@@ -1,5 +1,5 @@
 import {ContextualKeyword} from "../parser/keywords";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 
 /**
  * Determine whether this optional chain or nullish coalescing operation has any await statements in

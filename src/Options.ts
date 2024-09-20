@@ -1,8 +1,3 @@
-import {createCheckers} from "ts-interface-checker";
-
-import OptionsGenTypes from "./Options-gen-types";
-
-const {Options: OptionsChecker} = createCheckers(OptionsGenTypes);
 
 export type Transform = "jsx" | "typescript" | "flow" | "imports" | "react-hot-loader" | "jest";
 
@@ -94,8 +89,4 @@ export interface Options {
    * File path to use in error messages, React display names, and source maps.
    */
   filePath?: string;
-}
-
-export function validateOptions(options: Options): void {
-  OptionsChecker.strictCheck(options);
 }

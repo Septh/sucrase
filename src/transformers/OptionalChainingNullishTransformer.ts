@@ -1,6 +1,6 @@
-import type {NameManager} from "../NameManager";
+import type {NameManager} from "../managers/NameManager";
 import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 import Transformer from "./Transformer";
 
 /**

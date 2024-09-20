@@ -1,11 +1,11 @@
-import type {CJSImportProcessor} from "../CJSImportProcessor";
+import type {CJSImportProcessor} from "../processors/CJSImportProcessor";
 import type {Options} from "../index";
-import type {NameManager} from "../NameManager";
+import type {NameManager} from "../managers/NameManager";
 import XHTMLEntities from "../parser/plugins/jsx/xhtml";
 import {JSXRole} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
 import {charCodes} from "../parser/util";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 import {getJSXPragmaInfo, type JSXPragmaInfo} from "../util/getJSXPragmaInfo";
 import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";

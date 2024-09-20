@@ -1,13 +1,12 @@
-import {CJSImportProcessor} from "./CJSImportProcessor";
-import {computeSourceMap, type RawSourceMap} from "./computeSourceMap";
-import {HelperManager} from "./HelperManager";
-import {identifyShadowedGlobals} from "./identifyShadowedGlobals";
-import {NameManager} from "./NameManager";
-import {validateOptions} from "./Options";
+import {CJSImportProcessor} from "./processors/CJSImportProcessor";
+import {computeSourceMap, type RawSourceMap} from "./util/computeSourceMap";
+import {HelperManager} from "./managers/HelperManager";
+import {identifyShadowedGlobals} from "./util/identifyShadowedGlobals";
+import {NameManager} from "./managers/NameManager";
 import type {Options, SourceMapOptions, Transform} from "./Options";
 import {parse} from "./parser";
 import type {Scope} from "./parser/state";
-import {TokenProcessor} from "./TokenProcessor";
+import {TokenProcessor} from "./processors/TokenProcessor";
 import {RootTransformer} from "./transformers/RootTransformer";
 import {formatTokens} from "./util/formatTokens";
 import {getTSImportedNames} from "./util/getTSImportedNames";
@@ -33,7 +32,6 @@ export function getVersion(): string {
 }
 
 export function transform(code: string, options: Options): TransformResult {
-  validateOptions(options);
   try {
     const sucraseContext = getSucraseContext(code, options);
     const transformer = new RootTransformer(

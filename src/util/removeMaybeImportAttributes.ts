@@ -1,6 +1,6 @@
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 
 /**
  * Starting at a potential `with` or (legacy) `assert` token, remove the import

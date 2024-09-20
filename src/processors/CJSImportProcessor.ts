@@ -1,12 +1,12 @@
-import type {HelperManager} from "./HelperManager";
-import type {Options} from "./index";
-import type {NameManager} from "./NameManager";
-import {isDeclaration} from "./parser/token";
-import {ContextualKeyword} from "./parser/keywords";
-import {TokenType as tt} from "./parser/generated/types";
+import type {HelperManager} from "../managers/HelperManager";
+import type {Options} from "../index";
+import type {NameManager} from "../managers/NameManager";
+import {isDeclaration} from "../parser/token";
+import {ContextualKeyword} from "../parser/keywords";
+import {TokenType as tt} from "../parser/generated/types";
 import type {TokenProcessor} from "./TokenProcessor";
-import {getImportExportSpecifierInfo} from "./util/getImportExportSpecifierInfo";
-import {getNonTypeIdentifiers} from "./util/getNonTypeIdentifiers";
+import {getImportExportSpecifierInfo} from "../util/getImportExportSpecifierInfo";
+import {getNonTypeIdentifiers} from "../util/getNonTypeIdentifiers";
 
 interface NamedImport {
   importedName: string;

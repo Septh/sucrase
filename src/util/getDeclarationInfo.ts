@@ -1,6 +1,6 @@
 import {isTopLevelDeclaration} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 
 export interface DeclarationInfo {
   typeDeclarations: Set<string>;

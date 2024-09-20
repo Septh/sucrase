@@ -1,8 +1,8 @@
-import type {NameManager} from "../NameManager";
+import type {NameManager} from "../managers/NameManager";
 import type {Token} from "../parser/token";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../TokenProcessor";
+import type {TokenProcessor} from "../processors/TokenProcessor";
 import type {RootTransformer} from "../transformers/RootTransformer";
 
 export interface ClassHeaderInfo {
