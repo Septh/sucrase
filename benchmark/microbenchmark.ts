@@ -1,7 +1,6 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
-import {next} from "../src/parser/token";
-import {initParser} from "../src/parser/state";
+import {initParser, state} from "../src/parser/state";
 import {hasPrecedingLineBreak} from "../src/parser/traverser.js";
 
 function main(): void {
@@ -9,9 +8,9 @@ function main(): void {
   console.log(`Running microbenchmark ${benchmark}`);
   if (benchmark === "all" || benchmark === "hasPredecingLineBreak") {
     initParser("let x\nx++;", false, false, false);
-    next();
-    next();
-    next();
+    state.next();
+    state.next();
+    state.next();
     runMicrobenchmark(
       "hasPredecingLineBreak",
       () => {

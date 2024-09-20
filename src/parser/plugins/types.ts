@@ -1,8 +1,3 @@
-import {
-    eatTypeToken,
-    lookaheadType,
-    match,
-} from "../token"
 import { TokenType as tt } from "../generated/types"
 import { baseParseConditional } from "../traverser"
 import { flowParseTypeAnnotation } from './flow'
@@ -19,8 +14,8 @@ export function typedParseConditional(noIn: boolean): void {
     // If we see ?:, this can't possibly be a valid conditional. typedParseParenItem will be called
     // later to finish off the arrow parameter. We also need to handle bare ? tokens for optional
     // parameters without type annotations, i.e. ?, and ?) .
-    if (match(tt.question)) {
-        const nextType = lookaheadType()
+    if (state.match(tt.question)) {
+        const nextType = state.lookaheadType()
         if (nextType === tt.colon || nextType === tt.comma || nextType === tt.parenR) {
             return
         }
@@ -31,8 +26,8 @@ export function typedParseConditional(noIn: boolean): void {
 // Note: These "type casts" are *not* valid TS expressions.
 // But we parse them here and change them when completing the arrow function.
 export function typedParseParenItem(): void {
-    eatTypeToken(tt.question)
-    if (match(tt.colon)) {
+    state.eatTypeToken(tt.question)
+    if (state.match(tt.colon)) {
         if (state.isTypeScriptEnabled) {
             tsParseTypeAnnotation()
         } else if (state.isFlowEnabled) {

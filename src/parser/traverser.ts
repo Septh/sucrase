@@ -57,14 +57,7 @@ import {
     tsTryParseTypeParameters,
 } from './plugins/typescript'
 import {
-    IdentifierRole, eat,
-    eatTypeToken, finishToken, lookaheadCharCode, lookaheadType,
-    lookaheadTypeAndKeyword,
-    match,
-    next, nextTemplateToken, nextToken, nextTokenStart,
-    nextTokenStartSince,
-    popTypeContext,
-    pushTypeContext, rescan_gt, retokenizeSlashAsRegex, skipLineComment
+    IdentifierRole,
 } from "./token"
 import { ContextualKeyword } from './keywords'
 import { TokenType, formatTokenType, TokenType as tt } from "./generated/types"
@@ -78,13 +71,13 @@ export function isContextual(contextualKeyword: ContextualKeyword): boolean {
 }
 
 export function isLookaheadContextual(contextualKeyword: ContextualKeyword): boolean {
-    const l = lookaheadTypeAndKeyword()
+    const l = state.lookaheadTypeAndKeyword()
     return l.type === tt.name && l.contextualKeyword === contextualKeyword
 }
 
 // Consumes contextual keyword if possible.
 export function eatContextual(contextualKeyword: ContextualKeyword): boolean {
-    return state.contextualKeyword === contextualKeyword && eat(tt.name)
+    return state.contextualKeyword === contextualKeyword && state.eat(tt.name)
 }
 
 // Asserts that following token is given contextual keyword.
@@ -96,7 +89,7 @@ export function expectContextual(contextualKeyword: ContextualKeyword): void {
 
 // Test whether a semicolon can be inserted at the current position.
 export function canInsertSemicolon(): boolean {
-    return match(tt.eof) || match(tt.braceR) || hasPrecedingLineBreak()
+    return state.match(tt.eof) || state.match(tt.braceR) || hasPrecedingLineBreak()
 }
 
 export function hasPrecedingLineBreak(): boolean {
@@ -117,7 +110,7 @@ export function hasPrecedingLineBreak(): boolean {
 }
 
 export function hasFollowingLineBreak(): boolean {
-    const nextStart = nextTokenStart()
+    const nextStart = state.nextTokenStart()
     for (let i = state.end; i < nextStart; i++) {
         const code = state.input.charCodeAt(i)
         if (
@@ -133,7 +126,7 @@ export function hasFollowingLineBreak(): boolean {
 }
 
 export function isLineTerminator(): boolean {
-    return eat(tt.semi) || canInsertSemicolon()
+    return state.eat(tt.semi) || canInsertSemicolon()
 }
 
 // Consume a semicolon, or, failing that, see if we are allowed to
@@ -147,7 +140,7 @@ export function semicolon(): void {
 // Expect a token of a given type. If found, consume it, otherwise,
 // raise an unexpected token error at given pos.
 export function expect(type: TokenType): void {
-    const matched = eat(type)
+    const matched = state.eat(type)
     if (!matched) {
         unexpected(`Unexpected token, expected "${formatTokenType(type)}"`)
     }
@@ -166,18 +159,18 @@ export function unexpected(message: string = "Unexpected token", pos: number = s
     err.pos = pos
     state.error = err
     state.pos = state.input.length
-    finishToken(tt.eof)
+    state.scanner.finishToken(tt.eof)
 }
 // #endregion
 
 // #region lval.ts -------------------------------------------------------------
 export function parseSpread(): void {
-    next()
+    state.next()
     parseMaybeAssign(false)
 }
 
 export function parseRest(isBlockScope: boolean): void {
-    next()
+    state.next()
     parseBindingAtom(isBlockScope)
 }
 
@@ -208,9 +201,9 @@ export function parseBindingAtom(isBlockScope: boolean): void {
     switch (state.type) {
         case tt._this: {
             // In TypeScript, "this" may be the name of a parameter, so allow it.
-            const oldIsType = pushTypeContext(0)
-            next()
-            popTypeContext(oldIsType)
+            const oldIsType = state.pushTypeContext(0)
+            state.next()
+            state.popTypeContext(oldIsType)
             return
         }
 
@@ -222,7 +215,7 @@ export function parseBindingAtom(isBlockScope: boolean): void {
         }
 
         case tt.bracketL: {
-            next()
+            state.next()
             parseBindingList(tt.bracketR, isBlockScope, true /* allowEmpty */)
             return
         }
@@ -248,7 +241,7 @@ export function parseBindingList(
     let hasRemovedComma = false
     const firstItemTokenIndex = state.tokens.length
 
-    while (!eat(close) && !state.error) {
+    while (!state.eat(close) && !state.error) {
         if (first) {
             first = false
         } else {
@@ -261,15 +254,15 @@ export function parseBindingList(
                 hasRemovedComma = true
             }
         }
-        if (allowEmpty && match(tt.comma)) {
+        if (allowEmpty && state.match(tt.comma)) {
             // Empty item; nothing further to parse for this item.
-        } else if (eat(close)) {
+        } else if (state.eat(close)) {
             break
-        } else if (match(tt.ellipsis)) {
+        } else if (state.match(tt.ellipsis)) {
             parseRest(isBlockScope)
             parseAssignableListItemTypes()
             // Support rest element trailing commas allowed by TypeScript <2.9.
-            eat(TokenType.comma)
+            state.eat(TokenType.comma)
             expect(close)
             break
         } else {
@@ -307,7 +300,7 @@ export function parseMaybeDefault(isBlockScope: boolean, leftAlreadyParsed: bool
     if (!leftAlreadyParsed) {
         parseBindingAtom(isBlockScope)
     }
-    if (!eat(tt.eq)) {
+    if (!state.eat(tt.eq)) {
         return
     }
     const eqIndex = state.tokens.length - 1
@@ -333,8 +326,8 @@ export class StopState {
 // the AST node that the inner parser gave them in another node.
 export function parseExpression(noIn: boolean = false): void {
     parseMaybeAssign(noIn)
-    if (match(tt.comma)) {
-        while (eat(tt.comma)) {
+    if (state.match(tt.comma)) {
+        while (state.eat(tt.comma)) {
             parseMaybeAssign(noIn)
         }
     }
@@ -361,12 +354,12 @@ export function parseMaybeAssign(noIn: boolean = false, isWithinParens: boolean 
 // operators like `+=`.
 // Returns true if the expression was an arrow function.
 export function baseParseMaybeAssign(noIn: boolean, isWithinParens: boolean): boolean {
-    if (match(tt._yield)) {
+    if (state.match(tt._yield)) {
         parseYield()
         return false
     }
 
-    if (match(tt.parenL) || match(tt.name) || match(tt._yield)) {
+    if (state.match(tt.parenL) || state.match(tt.name) || state.match(tt._yield)) {
         state.potentialArrowAt = state.start
     }
 
@@ -375,7 +368,7 @@ export function baseParseMaybeAssign(noIn: boolean, isWithinParens: boolean): bo
         parseParenItem()
     }
     if (state.type & TokenType.IS_ASSIGN) {
-        next()
+        state.next()
         parseMaybeAssign(noIn)
         return false
     }
@@ -402,7 +395,7 @@ function parseConditional(noIn: boolean): void {
 }
 
 export function baseParseConditional(noIn: boolean): void {
-    if (eat(tt.question)) {
+    if (state.eat(tt.question)) {
         parseMaybeAssign()
         expect(tt.colon)
         parseMaybeAssign(noIn)
@@ -433,19 +426,19 @@ function parseExprOp(startTokenIndex: number, minPrec: number, noIn: boolean): v
         !hasPrecedingLineBreak() &&
         (eatContextual(ContextualKeyword._as) || eatContextual(ContextualKeyword._satisfies))
     ) {
-        const oldIsType = pushTypeContext(1)
+        const oldIsType = state.pushTypeContext(1)
         tsParseType()
-        popTypeContext(oldIsType)
-        rescan_gt()
+        state.popTypeContext(oldIsType)
+        state.scanner.rescan_gt()
         parseExprOp(startTokenIndex, minPrec, noIn)
         return
     }
 
     const prec = state.type & TokenType.PRECEDENCE_MASK
-    if (prec > 0 && (!noIn || !match(tt._in))) {
+    if (prec > 0 && (!noIn || !state.match(tt._in))) {
         if (prec > minPrec) {
             const op = state.type
-            next()
+            state.next()
             if (op === tt.nullishCoalescing) {
                 state.tokens[state.tokens.length - 1].nullishStartIndex = startTokenIndex
             }
@@ -467,20 +460,20 @@ function parseExprOp(startTokenIndex: number, minPrec: number, noIn: boolean): v
 // Parse unary operators, both prefix and postfix.
 // Returns true if this was an arrow function.
 export function parseMaybeUnary(): boolean {
-    if (state.isTypeScriptEnabled && !state.isJSXEnabled && eat(tt.lessThan)) {
+    if (state.isTypeScriptEnabled && !state.isJSXEnabled && state.eat(tt.lessThan)) {
         tsParseTypeAssertion()
         return false
     }
     if (
         isContextual(ContextualKeyword._module) &&
-        lookaheadCharCode() === charCodes.leftCurlyBrace &&
+        state.lookaheadCharCode() === charCodes.leftCurlyBrace &&
         !hasFollowingLineBreak()
     ) {
         parseModuleExpression()
         return false
     }
     if (state.type & TokenType.IS_PREFIX) {
-        next()
+        state.next()
         parseMaybeUnary()
         return false
     }
@@ -495,7 +488,7 @@ export function parseMaybeUnary(): boolean {
         if (state.type === tt.preIncDec) {
             state.type = tt.postIncDec
         }
-        next()
+        state.next()
     }
     return false
 }
@@ -548,43 +541,43 @@ export function baseParseSubscript(
     noCalls: boolean,
     stopState: StopState,
 ): void {
-    if (!noCalls && eat(tt.doubleColon)) {
+    if (!noCalls && state.eat(tt.doubleColon)) {
         parseNoCallExpr()
         stopState.stop = true
         // Propagate startTokenIndex so that `a::b?.()` will keep `a` as the first token. We may want
         // to revisit this in the future when fully supporting bind syntax.
         parseSubscripts(startTokenIndex, noCalls)
-    } else if (match(tt.questionDot)) {
+    } else if (state.match(tt.questionDot)) {
         state.tokens[startTokenIndex].isOptionalChainStart = true
-        if (noCalls && lookaheadType() === tt.parenL) {
+        if (noCalls && state.lookaheadType() === tt.parenL) {
             stopState.stop = true
             return
         }
-        next()
+        state.next()
         state.tokens[state.tokens.length - 1].subscriptStartIndex = startTokenIndex
 
-        if (eat(tt.bracketL)) {
+        if (state.eat(tt.bracketL)) {
             parseExpression()
             expect(tt.bracketR)
-        } else if (eat(tt.parenL)) {
+        } else if (state.eat(tt.parenL)) {
             parseCallExpressionArguments()
         } else {
             parseMaybePrivateName()
         }
-    } else if (eat(tt.dot)) {
+    } else if (state.eat(tt.dot)) {
         state.tokens[state.tokens.length - 1].subscriptStartIndex = startTokenIndex
         parseMaybePrivateName()
-    } else if (eat(tt.bracketL)) {
+    } else if (state.eat(tt.bracketL)) {
         state.tokens[state.tokens.length - 1].subscriptStartIndex = startTokenIndex
         parseExpression()
         expect(tt.bracketR)
-    } else if (!noCalls && match(tt.parenL)) {
+    } else if (!noCalls && state.match(tt.parenL)) {
         if (atPossibleAsync()) {
             // We see "async", but it's possible it's a usage of the name "async". Parse as if it's a
             // function call, and if we see an arrow later, backtrack and re-parse as a parameter list.
             const snapshot = state.snapshot()
             const asyncStartTokenIndex = state.tokens.length
-            next()
+            state.next()
             state.tokens[state.tokens.length - 1].subscriptStartIndex = startTokenIndex
 
             const callContextId = state.getNextContextId()
@@ -603,14 +596,14 @@ export function baseParseSubscript(
                 parseAsyncArrowFromCallExpression(asyncStartTokenIndex)
             }
         } else {
-            next()
+            state.next()
             state.tokens[state.tokens.length - 1].subscriptStartIndex = startTokenIndex
             const callContextId = state.getNextContextId()
             state.tokens[state.tokens.length - 1].contextId = callContextId
             parseCallExpressionArguments()
             state.tokens[state.tokens.length - 1].contextId = callContextId
         }
-    } else if (match(tt.backQuote)) {
+    } else if (state.match(tt.backQuote)) {
         // Tagged template expression.
         parseTemplate()
     } else {
@@ -629,12 +622,12 @@ export function atPossibleAsync(): boolean {
 
 export function parseCallExpressionArguments(): void {
     let first = true
-    while (!eat(tt.parenR) && !state.error) {
+    while (!state.eat(tt.parenR) && !state.error) {
         if (first) {
             first = false
         } else {
             expect(tt.comma)
-            if (eat(tt.parenR)) {
+            if (state.eat(tt.parenR)) {
                 break
             }
         }
@@ -644,7 +637,7 @@ export function parseCallExpressionArguments(): void {
 }
 
 function shouldParseAsyncArrow(): boolean {
-    return match(tt.colon) || match(tt.arrow)
+    return state.match(tt.colon) || state.match(tt.arrow)
 }
 
 function parseAsyncArrowFromCallExpression(startTokenIndex: number): void {
@@ -671,20 +664,20 @@ function parseNoCallExpr(): void {
 // or `{}`.
 // Returns true if the parsed expression was an arrow function.
 export function parseExprAtom(): boolean {
-    if (eat(tt.modulo)) {
+    if (state.eat(tt.modulo)) {
         // V8 intrinsic expression. Just parse the identifier, and the function invocation is parsed
         // naturally.
         parseIdentifier()
         return false
     }
 
-    if (match(tt.jsxText) || match(tt.jsxEmptyText)) {
+    if (state.match(tt.jsxText) || state.match(tt.jsxEmptyText)) {
         parseLiteral()
         return false
-    } else if (match(tt.lessThan) && state.isJSXEnabled) {
+    } else if (state.match(tt.lessThan) && state.isJSXEnabled) {
         state.type = tt.jsxTagStart
         jsxParseElement()
-        next()
+        state.next()
         return false
     }
 
@@ -692,7 +685,7 @@ export function parseExprAtom(): boolean {
     switch (state.type) {
         case tt.slash:
         case tt.assign:
-            retokenizeSlashAsRegex()
+            state.retokenizeSlashAsRegex()
         // Fall through.
 
         case tt._super:
@@ -705,15 +698,15 @@ export function parseExprAtom(): boolean {
         case tt._null:
         case tt._true:
         case tt._false:
-            next()
+            state.next()
             return false
 
         case tt._import:
-            next()
-            if (match(tt.dot)) {
+            state.next()
+            if (state.match(tt.dot)) {
                 // import.meta
                 state.tokens[state.tokens.length - 1].type = tt.name
-                next()
+                state.next()
                 parseIdentifier()
             }
             return false
@@ -728,17 +721,17 @@ export function parseExprAtom(): boolean {
                 return false
             } else if (
                 contextualKeyword === ContextualKeyword._async &&
-                match(tt._function) &&
+                state.match(tt._function) &&
                 !canInsertSemicolon()
             ) {
-                next()
+                state.next()
                 parseFunction(functionStart, false)
                 return false
             } else if (
                 canBeArrow &&
                 contextualKeyword === ContextualKeyword._async &&
                 !canInsertSemicolon() &&
-                match(tt.name)
+                state.match(tt.name)
             ) {
                 state.scopeDepth++
                 parseBindingIdentifier(false)
@@ -746,13 +739,13 @@ export function parseExprAtom(): boolean {
                 // let foo = async bar => {};
                 parseArrowExpression(startTokenIndex)
                 return true
-            } else if (match(tt._do) && !canInsertSemicolon()) {
-                next()
+            } else if (state.match(tt._do) && !canInsertSemicolon()) {
+                state.next()
                 parseBlock()
                 return false
             }
 
-            if (canBeArrow && !canInsertSemicolon() && match(tt.arrow)) {
+            if (canBeArrow && !canInsertSemicolon() && state.match(tt.arrow)) {
                 state.scopeDepth++
                 markPriorBindingIdentifier(false)
                 expect(tt.arrow)
@@ -765,7 +758,7 @@ export function parseExprAtom(): boolean {
         }
 
         case tt._do: {
-            next()
+            state.next()
             parseBlock()
             return false
         }
@@ -776,7 +769,7 @@ export function parseExprAtom(): boolean {
         }
 
         case tt.bracketL:
-            next()
+            state.next()
             parseExprList(tt.bracketR, true)
             return false
 
@@ -805,17 +798,17 @@ export function parseExprAtom(): boolean {
             return false
 
         case tt.doubleColon: {
-            next()
+            state.next()
             parseNoCallExpr()
             return false
         }
 
         case tt.hash: {
-            const code = lookaheadCharCode()
+            const code = state.lookaheadCharCode()
             if (IS_IDENTIFIER_START[code] || code === charCodes.backslash) {
                 parseMaybePrivateName()
             } else {
-                next()
+                state.next()
             }
             // Smart pipeline topic reference.
             return false
@@ -828,14 +821,14 @@ export function parseExprAtom(): boolean {
 }
 
 function parseMaybePrivateName(): void {
-    eat(tt.hash)
+    state.eat(tt.hash)
     parseIdentifier()
 }
 
 function parseFunctionExpression(): void {
     const functionStart = state.start
     parseIdentifier()
-    if (eat(tt.dot)) {
+    if (state.eat(tt.dot)) {
         // function.sent
         parseIdentifier()
     }
@@ -843,7 +836,7 @@ function parseFunctionExpression(): void {
 }
 
 export function parseLiteral(): void {
-    next()
+    state.next()
 }
 
 export function parseParenExpression(): void {
@@ -863,17 +856,17 @@ function parseParenAndDistinguishExpression(canBeArrow: boolean): boolean {
 
     let first = true
 
-    while (!match(tt.parenR) && !state.error) {
+    while (!state.match(tt.parenR) && !state.error) {
         if (first) {
             first = false
         } else {
             expect(tt.comma)
-            if (match(tt.parenR)) {
+            if (state.match(tt.parenR)) {
                 break
             }
         }
 
-        if (match(tt.ellipsis)) {
+        if (state.match(tt.ellipsis)) {
             parseRest(false /* isBlockScope */)
             parseParenItem()
             break
@@ -912,7 +905,7 @@ function parseParenAndDistinguishExpression(canBeArrow: boolean): boolean {
 }
 
 function shouldParseArrow(): boolean {
-    return match(tt.colon) || !canInsertSemicolon()
+    return state.match(tt.colon) || !canInsertSemicolon()
 }
 
 // Returns whether there was an arrow token.
@@ -922,7 +915,7 @@ export function parseArrow(): boolean {
     } else if (state.isFlowEnabled) {
         return flowParseArrow()
     } else {
-        return eat(tt.arrow)
+        return state.eat(tt.arrow)
     }
 }
 
@@ -939,7 +932,7 @@ function parseParenItem(): void {
 // argument list.
 function parseNew(): void {
     expect(tt._new)
-    if (eat(tt.dot)) {
+    if (state.eat(tt.dot)) {
         // new.target
         parseIdentifier()
         return
@@ -948,30 +941,30 @@ function parseNew(): void {
     if (state.isFlowEnabled) {
         flowStartParseNewArguments()
     }
-    if (eat(tt.parenL)) {
+    if (state.eat(tt.parenL)) {
         parseExprList(tt.parenR)
     }
 }
 
 function parseNewCallee(): void {
     parseNoCallExpr()
-    eat(tt.questionDot)
+    state.eat(tt.questionDot)
 }
 
 export function parseTemplate(): void {
     // Finish `, read quasi
-    nextTemplateToken()
+    state.nextTemplateToken()
     // Finish quasi, read ${
-    nextTemplateToken()
-    while (!match(tt.backQuote) && !state.error) {
+    state.nextTemplateToken()
+    while (!state.match(tt.backQuote) && !state.error) {
         expect(tt.dollarBraceL)
         parseExpression()
         // Finish }, read quasi
-        nextTemplateToken()
+        state.nextTemplateToken()
         // Finish quasi, read either ${ or `
-        nextTemplateToken()
+        state.nextTemplateToken()
     }
-    next()
+    state.next()
 }
 
 // Parse an object literal or binding pattern.
@@ -980,21 +973,21 @@ export function parseObj(isPattern: boolean, isBlockScope: boolean): void {
     const contextId = state.getNextContextId()
     let first = true
 
-    next()
+    state.next()
     state.tokens[state.tokens.length - 1].contextId = contextId
 
-    while (!eat(tt.braceR) && !state.error) {
+    while (!state.eat(tt.braceR) && !state.error) {
         if (first) {
             first = false
         } else {
             expect(tt.comma)
-            if (eat(tt.braceR)) {
+            if (state.eat(tt.braceR)) {
                 break
             }
         }
 
         let isGenerator = false
-        if (match(tt.ellipsis)) {
+        if (state.match(tt.ellipsis)) {
             const previousIndex = state.tokens.length
             parseSpread()
             if (isPattern) {
@@ -1002,7 +995,7 @@ export function parseObj(isPattern: boolean, isBlockScope: boolean): void {
                 if (state.tokens.length === previousIndex + 2) {
                     markPriorBindingIdentifier(isBlockScope)
                 }
-                if (eat(tt.braceR)) {
+                if (state.eat(tt.braceR)) {
                     break
                 }
             }
@@ -1010,7 +1003,7 @@ export function parseObj(isPattern: boolean, isBlockScope: boolean): void {
         }
 
         if (!isPattern) {
-            isGenerator = eat(tt.star)
+            isGenerator = state.eat(tt.star)
         }
 
         if (!isPattern && isContextual(ContextualKeyword._async)) {
@@ -1018,16 +1011,16 @@ export function parseObj(isPattern: boolean, isBlockScope: boolean): void {
 
             parseIdentifier()
             if (
-                match(tt.colon) ||
-                match(tt.parenL) ||
-                match(tt.braceR) ||
-                match(tt.eq) ||
-                match(tt.comma)
+                state.match(tt.colon) ||
+                state.match(tt.parenL) ||
+                state.match(tt.braceR) ||
+                state.match(tt.eq) ||
+                state.match(tt.comma)
             ) {
                 // This is a key called "async" rather than an async function.
             } else {
-                if (match(tt.star)) {
-                    next()
+                if (state.match(tt.star)) {
+                    state.next()
                     isGenerator = true
                 }
                 parsePropertyName(contextId)
@@ -1047,10 +1040,10 @@ function isGetterOrSetterMethod(isPattern: boolean): boolean {
     // This lets us avoid generating a node, and should only make the validation worse.
     return (
         !isPattern &&
-        (match(tt.string) || // get "string"() {}
-            match(tt.num) || // get 1() {}
-            match(tt.bracketL) || // get ["string"]() {}
-            match(tt.name) || // get foo() {}
+        (state.match(tt.string) || // get "string"() {}
+            state.match(tt.num) || // get 1() {}
+            state.match(tt.bracketL) || // get ["string"]() {}
+            state.match(tt.name) || // get foo() {}
             !!(state.type & TokenType.IS_KEYWORD)) // get debugger() {}
     )
 }
@@ -1060,7 +1053,7 @@ function parseObjectMethod(isPattern: boolean, objectContextId: number): boolean
     // We don't need to worry about modifiers because object methods can't have optional bodies, so
     // the start will never be used.
     const functionStart = state.start
-    if (match(tt.parenL)) {
+    if (state.match(tt.parenL)) {
         if (isPattern) unexpected()
         parseMethod(functionStart, /* isConstructor */ false)
         return true
@@ -1075,7 +1068,7 @@ function parseObjectMethod(isPattern: boolean, objectContextId: number): boolean
 }
 
 function parseObjectProperty(isPattern: boolean, isBlockScope: boolean): void {
-    if (eat(tt.colon)) {
+    if (state.eat(tt.colon)) {
         if (isPattern) {
             parseMaybeDefault(isBlockScope)
         } else {
@@ -1128,13 +1121,13 @@ export function parsePropertyName(objectContextId: number): void {
     if (state.isFlowEnabled) {
         flowParseVariance()
     }
-    if (eat(tt.bracketL)) {
+    if (state.eat(tt.bracketL)) {
         state.tokens[state.tokens.length - 1].contextId = objectContextId
         parseMaybeAssign()
         expect(tt.bracketR)
         state.tokens[state.tokens.length - 1].contextId = objectContextId
     } else {
-        if (match(tt.num) || match(tt.string) || match(tt.bigint) || match(tt.decimal)) {
+        if (state.match(tt.num) || state.match(tt.string) || state.match(tt.bigint) || state.match(tt.decimal)) {
             parseExprAtom()
         } else {
             parseMaybePrivateName()
@@ -1180,7 +1173,7 @@ export function parseFunctionBodyAndFinish(functionStart: number, funcContextId:
 }
 
 export function parseFunctionBody(allowExpression: boolean, funcContextId: number = 0): void {
-    const isExpression = allowExpression && !match(tt.braceL)
+    const isExpression = allowExpression && !state.match(tt.braceL)
 
     if (isExpression) {
         parseMaybeAssign()
@@ -1197,26 +1190,26 @@ export function parseFunctionBody(allowExpression: boolean, funcContextId: numbe
 
 function parseExprList(close: TokenType, allowEmpty: boolean = false): void {
     let first = true
-    while (!eat(close) && !state.error) {
+    while (!state.eat(close) && !state.error) {
         if (first) {
             first = false
         } else {
             expect(tt.comma)
-            if (eat(close)) break
+            if (state.eat(close)) break
         }
         parseExprListItem(allowEmpty)
     }
 }
 
 function parseExprListItem(allowEmpty: boolean): void {
-    if (allowEmpty && match(tt.comma)) {
+    if (allowEmpty && state.match(tt.comma)) {
         // Empty item; nothing more to parse for this item.
-    } else if (match(tt.ellipsis)) {
+    } else if (state.match(tt.ellipsis)) {
         parseSpread()
         parseParenItem()
-    } else if (match(tt.question)) {
+    } else if (state.match(tt.question)) {
         // Partial function application proposal.
-        next()
+        state.next()
     } else {
         parseMaybeAssign(false, true)
     }
@@ -1224,7 +1217,7 @@ function parseExprListItem(allowEmpty: boolean): void {
 
 // Parse the next token as an identifier.
 export function parseIdentifier(): void {
-    next()
+    state.next()
     state.tokens[state.tokens.length - 1].type = tt.name
 }
 
@@ -1235,9 +1228,9 @@ function parseAwait(): void {
 
 // Parses yield expression inside generator.
 function parseYield(): void {
-    next()
-    if (!match(tt.semi) && !canInsertSemicolon()) {
-        eat(tt.star)
+    state.next()
+    if (!state.match(tt.semi) && !canInsertSemicolon()) {
+        state.eat(tt.star)
         parseMaybeAssign()
     }
 }
@@ -1276,7 +1269,7 @@ export function parseStatement(declaration: boolean): void {
             return
         }
     }
-    if (match(tt.at)) {
+    if (state.match(tt.at)) {
         parseDecorators()
     }
     parseStatementContent(declaration)
@@ -1310,7 +1303,7 @@ function parseStatementContent(declaration: boolean): void {
             parseForStatement()
             return
         case tt._function:
-            if (lookaheadType() === tt.dot) break
+            if (state.lookaheadType() === tt.dot) break
             if (!declaration) unexpected()
             parseFunctionStatement()
             return
@@ -1355,11 +1348,11 @@ function parseStatementContent(declaration: boolean): void {
             return
         case tt._export:
         case tt._import: {
-            const nextType = lookaheadType()
+            const nextType = state.lookaheadType()
             if (nextType === tt.parenL || nextType === tt.dot) {
                 break
             }
-            next()
+            state.next()
             if (starttype === tt._import) {
                 parseImport()
             } else {
@@ -1372,8 +1365,8 @@ function parseStatementContent(declaration: boolean): void {
                 const functionStart = state.start
                 // peek ahead and see if next token is a function
                 const snapshot = state.snapshot()
-                next()
-                if (match(tt._function) && !canInsertSemicolon()) {
+                state.next()
+                if (state.match(tt._function) && !canInsertSemicolon()) {
                     expect(tt._function)
                     parseFunction(functionStart, true)
                     return
@@ -1385,7 +1378,7 @@ function parseStatementContent(declaration: boolean): void {
                 !hasFollowingLineBreak() &&
                 // Statements like `using[0]` and `using in foo` aren't actual using
                 // declarations.
-                lookaheadType() === tt.name
+                state.lookaheadType() === tt.name
             ) {
                 parseVarStatement(true)
                 return
@@ -1417,7 +1410,7 @@ function parseStatementContent(declaration: boolean): void {
         semicolon()
         return
     }
-    if (eat(tt.colon)) {
+    if (state.eat(tt.colon)) {
         parseLabeledStatement()
     } else {
         // This was an identifier, so we might want to handle flow/typescript-specific cases.
@@ -1452,14 +1445,14 @@ function startsAwaitUsing(): boolean {
     }
     const snapshot = state.snapshot()
     // await
-    next()
+    state.next()
     if (!isContextual(ContextualKeyword._using) || hasPrecedingLineBreak()) {
         state.restoreFromSnapshot(snapshot)
         return false
     }
     // using
-    next()
-    if (!match(tt.name) || hasPrecedingLineBreak()) {
+    state.next()
+    if (!state.match(tt.name) || hasPrecedingLineBreak()) {
         state.restoreFromSnapshot(snapshot)
         return false
     }
@@ -1468,19 +1461,19 @@ function startsAwaitUsing(): boolean {
 }
 
 export function parseDecorators(): void {
-    while (match(tt.at)) {
+    while (state.match(tt.at)) {
         parseDecorator()
     }
 }
 
 function parseDecorator(): void {
-    next()
-    if (eat(tt.parenL)) {
+    state.next()
+    if (state.eat(tt.parenL)) {
         parseExpression()
         expect(tt.parenR)
     } else {
         parseIdentifier()
-        while (eat(tt.dot)) {
+        while (state.eat(tt.dot)) {
             parseIdentifier()
         }
         parseMaybeDecoratorArguments()
@@ -1496,13 +1489,13 @@ function parseMaybeDecoratorArguments(): void {
 }
 
 export function baseParseMaybeDecoratorArguments(): void {
-    if (eat(tt.parenL)) {
+    if (state.eat(tt.parenL)) {
         parseCallExpressionArguments()
     }
 }
 
 function parseBreakContinueStatement(): void {
-    next()
+    state.next()
     if (!isLineTerminator()) {
         parseIdentifier()
         semicolon()
@@ -1510,16 +1503,16 @@ function parseBreakContinueStatement(): void {
 }
 
 function parseDebuggerStatement(): void {
-    next()
+    state.next()
     semicolon()
 }
 
 function parseDoStatement(): void {
-    next()
+    state.next()
     parseStatement(false)
     expect(tt._while)
     parseParenExpression()
-    eat(tt.semi)
+    state.eat(tt.semi)
 }
 
 function parseForStatement(): void {
@@ -1556,16 +1549,16 @@ function isUsingInLoop(): boolean {
 // part (semicolon immediately after the opening parenthesis), it
 // is a regular `for` loop.
 function parseAmbiguousForStatement(): void {
-    next()
+    state.next()
 
     let forAwait = false
     if (isContextual(ContextualKeyword._await)) {
         forAwait = true
-        next()
+        state.next()
     }
     expect(tt.parenL)
 
-    if (match(tt.semi)) {
+    if (state.match(tt.semi)) {
         if (forAwait) {
             unexpected()
         }
@@ -1574,13 +1567,13 @@ function parseAmbiguousForStatement(): void {
     }
 
     const isAwaitUsing = startsAwaitUsing()
-    if (isAwaitUsing || match(tt._var) || match(tt._let) || match(tt._const) || isUsingInLoop()) {
+    if (isAwaitUsing || state.match(tt._var) || state.match(tt._let) || state.match(tt._const) || isUsingInLoop()) {
         if (isAwaitUsing) {
             expectContextual(ContextualKeyword._await)
         }
-        next()
+        state.next()
         parseVar(true, state.type !== tt._var)
-        if (match(tt._in) || isContextual(ContextualKeyword._of)) {
+        if (state.match(tt._in) || isContextual(ContextualKeyword._of)) {
             parseForIn(forAwait)
             return
         }
@@ -1589,7 +1582,7 @@ function parseAmbiguousForStatement(): void {
     }
 
     parseExpression(true)
-    if (match(tt._in) || isContextual(ContextualKeyword._of)) {
+    if (state.match(tt._in) || isContextual(ContextualKeyword._of)) {
         parseForIn(forAwait)
         return
     }
@@ -1601,21 +1594,21 @@ function parseAmbiguousForStatement(): void {
 
 function parseFunctionStatement(): void {
     const functionStart = state.start
-    next()
+    state.next()
     parseFunction(functionStart, true)
 }
 
 function parseIfStatement(): void {
-    next()
+    state.next()
     parseParenExpression()
     parseStatement(false)
-    if (eat(tt._else)) {
+    if (state.eat(tt._else)) {
         parseStatement(false)
     }
 }
 
 function parseReturnStatement(): void {
-    next()
+    state.next()
 
     // In `return` (and `break`/`continue`), the keywords with
     // optional arguments, we eagerly look for a semicolon or the
@@ -1628,17 +1621,17 @@ function parseReturnStatement(): void {
 }
 
 function parseSwitchStatement(): void {
-    next()
+    state.next()
     parseParenExpression()
     state.scopeDepth++
     const startTokenIndex = state.tokens.length
     expect(tt.braceL)
 
     // Don't bother validation; just go through any sequence of cases, defaults, and statements.
-    while (!match(tt.braceR) && !state.error) {
-        if (match(tt._case) || match(tt._default)) {
-            const isCase = match(tt._case)
-            next()
+    while (!state.match(tt.braceR) && !state.error) {
+        if (state.match(tt._case) || state.match(tt._default)) {
+            const isCase = state.match(tt._case)
+            state.next()
             if (isCase) {
                 parseExpression()
             }
@@ -1647,14 +1640,14 @@ function parseSwitchStatement(): void {
             parseStatement(true)
         }
     }
-    next() // Closing brace
+    state.next() // Closing brace
     const endTokenIndex = state.tokens.length
     state.scopes.push(new Scope(startTokenIndex, endTokenIndex, false))
     state.scopeDepth--
 }
 
 function parseThrowStatement(): void {
-    next()
+    state.next()
     parseExpression()
     semicolon()
 }
@@ -1668,14 +1661,14 @@ function parseCatchClauseParam(): void {
 }
 
 function parseTryStatement(): void {
-    next()
+    state.next()
 
     parseBlock()
 
-    if (match(tt._catch)) {
-        next()
+    if (state.match(tt._catch)) {
+        state.next()
         let catchBindingStartTokenIndex = null
-        if (match(tt.parenL)) {
+        if (state.match(tt.parenL)) {
             state.scopeDepth++
             catchBindingStartTokenIndex = state.tokens.length
             expect(tt.parenL)
@@ -1691,25 +1684,25 @@ function parseTryStatement(): void {
             state.scopeDepth--
         }
     }
-    if (eat(tt._finally)) {
+    if (state.eat(tt._finally)) {
         parseBlock()
     }
 }
 
 export function parseVarStatement(isBlockScope: boolean): void {
-    next()
+    state.next()
     parseVar(false, isBlockScope)
     semicolon()
 }
 
 function parseWhileStatement(): void {
-    next()
+    state.next()
     parseParenExpression()
     parseStatement(false)
 }
 
 function parseEmptyStatement(): void {
-    next()
+    state.next()
 }
 
 function parseLabeledStatement(): void {
@@ -1748,7 +1741,7 @@ export function parseBlock(isFunctionScope: boolean = false, contextId: number =
 }
 
 export function parseBlockBody(end: TokenType): void {
-    while (!eat(end) && !state.error) {
+    while (!state.eat(end) && !state.error) {
         parseStatement(true)
     }
 }
@@ -1759,11 +1752,11 @@ export function parseBlockBody(end: TokenType): void {
 
 function parseFor(): void {
     expect(tt.semi)
-    if (!match(tt.semi)) {
+    if (!state.match(tt.semi)) {
         parseExpression()
     }
     expect(tt.semi)
-    if (!match(tt.parenR)) {
+    if (!state.match(tt.parenR)) {
         parseExpression()
     }
     expect(tt.parenR)
@@ -1777,7 +1770,7 @@ function parseForIn(forAwait: boolean): void {
     if (forAwait) {
         eatContextual(ContextualKeyword._of)
     } else {
-        next()
+        state.next()
     }
     parseExpression()
     expect(tt.parenR)
@@ -1789,12 +1782,12 @@ function parseForIn(forAwait: boolean): void {
 function parseVar(isFor: boolean, isBlockScope: boolean): void {
     while (true) {
         parseVarHead(isBlockScope)
-        if (eat(tt.eq)) {
+        if (state.eat(tt.eq)) {
             const eqIndex = state.tokens.length - 1
             parseMaybeAssign(isFor)
             state.tokens[eqIndex].rhsEndIndex = state.tokens.length
         }
-        if (!eat(tt.comma)) {
+        if (!state.eat(tt.comma)) {
             break
         }
     }
@@ -1817,17 +1810,17 @@ export function parseFunction(
     isStatement: boolean,
     optionalId: boolean = false,
 ): void {
-    if (match(tt.star)) {
-        next()
+    if (state.match(tt.star)) {
+        state.next()
     }
 
-    if (isStatement && !optionalId && !match(tt.name) && !match(tt._yield)) {
+    if (isStatement && !optionalId && !state.match(tt.name) && !state.match(tt._yield)) {
         unexpected()
     }
 
     let nameScopeStartTokenIndex = null
 
-    if (match(tt.name)) {
+    if (state.match(tt.name)) {
         // Expression-style functions should limit their name's scope to the function body, so we make
         // a new function scope to enforce that.
         if (!isStatement) {
@@ -1886,7 +1879,7 @@ export function parseClass(isStatement: boolean, optionalId: boolean = false): v
     // code can easily navigate to meaningful points on the class.
     const contextId = state.getNextContextId()
 
-    next()
+    state.next()
     state.tokens[state.tokens.length - 1].contextId = contextId
     state.tokens[state.tokens.length - 1].isExpression = !isStatement
     // Like with functions, we declare a special "name scope" from the start of the name to the end
@@ -1914,22 +1907,22 @@ export function parseClass(isStatement: boolean, optionalId: boolean = false): v
 }
 
 function isClassProperty(): boolean {
-    return match(tt.eq) || match(tt.semi) || match(tt.braceR) || match(tt.bang) || match(tt.colon)
+    return state.match(tt.eq) || state.match(tt.semi) || state.match(tt.braceR) || state.match(tt.bang) || state.match(tt.colon)
 }
 
 function isClassMethod(): boolean {
-    return match(tt.parenL) || match(tt.lessThan)
+    return state.match(tt.parenL) || state.match(tt.lessThan)
 }
 
 function parseClassBody(classContextId: number): void {
     expect(tt.braceL)
 
-    while (!eat(tt.braceR) && !state.error) {
-        if (eat(tt.semi)) {
+    while (!state.eat(tt.braceR) && !state.error) {
+        if (state.eat(tt.semi)) {
             continue
         }
 
-        if (match(tt.at)) {
+        if (state.match(tt.at)) {
             parseDecorator()
             continue
         }
@@ -1949,7 +1942,7 @@ function parseClassMember(memberStart: number, classContextId: number): void {
         ])
     }
     let isStatic = false
-    if (match(tt.name) && state.contextualKeyword === ContextualKeyword._static) {
+    if (state.match(tt.name) && state.contextualKeyword === ContextualKeyword._static) {
         parseIdentifier() // eats 'static'
         if (isClassMethod()) {
             parseClassMethod(memberStart, /* isConstructor */ false)
@@ -1962,7 +1955,7 @@ function parseClassMember(memberStart: number, classContextId: number): void {
         state.tokens[state.tokens.length - 1].type = tt._static
         isStatic = true
 
-        if (match(tt.braceL)) {
+        if (state.match(tt.braceL)) {
             // This is a static block. Mark the word "static" with the class context ID for class element
             // detection and parse as a regular block.
             state.tokens[state.tokens.length - 1].contextId = classContextId
@@ -1984,7 +1977,7 @@ function parseClassMemberWithIsStatic(
             return
         }
     }
-    if (eat(tt.star)) {
+    if (state.eat(tt.star)) {
         // a generator
         parseClassPropertyName(classContextId)
         parseClassMethod(memberStart, /* isConstructor */ false)
@@ -2009,9 +2002,9 @@ function parseClassMemberWithIsStatic(
     } else if (token.contextualKeyword === ContextualKeyword._async && !isLineTerminator()) {
         state.tokens[state.tokens.length - 1].type = tt._async
         // an async method
-        const isGenerator = match(tt.star)
+        const isGenerator = state.match(tt.star)
         if (isGenerator) {
-            next()
+            state.next()
         }
 
         // The so-called parsed name would have been "async": get the real name.
@@ -2021,7 +2014,7 @@ function parseClassMemberWithIsStatic(
     } else if (
         (token.contextualKeyword === ContextualKeyword._get ||
             token.contextualKeyword === ContextualKeyword._set) &&
-        !(isLineTerminator() && match(tt.star))
+        !(isLineTerminator() && state.match(tt.star))
     ) {
         if (token.contextualKeyword === ContextualKeyword._get) {
             state.tokens[state.tokens.length - 1].type = tt._get
@@ -2048,7 +2041,7 @@ function parseClassMethod(functionStart: number, isConstructor: boolean): void {
     if (state.isTypeScriptEnabled) {
         tsTryParseTypeParameters()
     } else if (state.isFlowEnabled) {
-        if (match(tt.lessThan)) {
+        if (state.match(tt.lessThan)) {
             flowParseTypeParameterDeclaration()
         }
     }
@@ -2062,25 +2055,25 @@ export function parseClassPropertyName(classContextId: number): void {
 
 export function parsePostMemberNameModifiers(): void {
     if (state.isTypeScriptEnabled) {
-        const oldIsType = pushTypeContext(0)
-        eat(tt.question)
-        popTypeContext(oldIsType)
+        const oldIsType = state.pushTypeContext(0)
+        state.eat(tt.question)
+        state.popTypeContext(oldIsType)
     }
 }
 
 export function parseClassProperty(): void {
     if (state.isTypeScriptEnabled) {
-        eatTypeToken(tt.bang)
+        state.eatTypeToken(tt.bang)
         tsTryParseTypeAnnotation()
     } else if (state.isFlowEnabled) {
-        if (match(tt.colon)) {
+        if (state.match(tt.colon)) {
             flowParseTypeAnnotation()
         }
     }
 
-    if (match(tt.eq)) {
+    if (state.match(tt.eq)) {
         const equalsTokenIndex = state.tokens.length
-        next()
+        state.next()
         parseMaybeAssign()
         state.tokens[equalsTokenIndex].rhsEndIndex = state.tokens.length
     }
@@ -2096,14 +2089,14 @@ function parseClassId(isStatement: boolean, optionalId: boolean = false): void {
         return
     }
 
-    if (match(tt.name)) {
+    if (state.match(tt.name)) {
         parseBindingIdentifier(true)
     }
 
     if (state.isTypeScriptEnabled) {
         tsTryParseTypeParameters()
     } else if (state.isFlowEnabled) {
-        if (match(tt.lessThan)) {
+        if (state.match(tt.lessThan)) {
             flowParseTypeParameterDeclaration()
         }
     }
@@ -2112,7 +2105,7 @@ function parseClassId(isStatement: boolean, optionalId: boolean = false): void {
 // Returns true if there was a superclass.
 function parseClassSuper(): void {
     let hasSuper = false
-    if (eat(tt._extends)) {
+    if (state.eat(tt._extends)) {
         parseExprSubscripts()
         hasSuper = true
     } else {
@@ -2140,7 +2133,7 @@ export function parseExport(): void {
     } else if (isExportDefaultSpecifier()) {
         // export default from
         parseIdentifier()
-        if (match(tt.comma) && lookaheadType() === tt.star) {
+        if (state.match(tt.comma) && state.lookaheadType() === tt.star) {
             expect(tt.comma)
             expect(tt.star)
             expectContextual(ContextualKeyword._as)
@@ -2149,7 +2142,7 @@ export function parseExport(): void {
             parseExportSpecifiersMaybe()
         }
         parseExportFrom()
-    } else if (eat(tt._default)) {
+    } else if (state.eat(tt._default)) {
         // export default ...
         parseExportDefaultExpression()
     } else if (shouldParseExportDeclaration()) {
@@ -2174,16 +2167,16 @@ function parseExportDefaultExpression(): void {
         }
     }
     const functionStart = state.start
-    if (eat(tt._function)) {
+    if (state.eat(tt._function)) {
         parseFunction(functionStart, true, true)
-    } else if (isContextual(ContextualKeyword._async) && lookaheadType() === tt._function) {
+    } else if (isContextual(ContextualKeyword._async) && state.lookaheadType() === tt._function) {
         // async function declaration
         eatContextual(ContextualKeyword._async)
-        eat(tt._function)
+        state.eat(tt._function)
         parseFunction(functionStart, true, true)
-    } else if (match(tt._class)) {
+    } else if (state.match(tt._class)) {
         parseClass(true, true)
-    } else if (match(tt.at)) {
+    } else if (state.match(tt.at)) {
         parseDecorators()
         parseClass(true, true)
     } else {
@@ -2208,16 +2201,16 @@ function isExportDefaultSpecifier(): boolean {
     } else if (state.isFlowEnabled && flowShouldDisallowExportDefaultSpecifier()) {
         return false
     }
-    if (match(tt.name)) {
+    if (state.match(tt.name)) {
         return state.contextualKeyword !== ContextualKeyword._async
     }
 
-    if (!match(tt._default)) {
+    if (!state.match(tt._default)) {
         return false
     }
 
-    const _next = nextTokenStart()
-    const lookahead = lookaheadTypeAndKeyword()
+    const _next = state.nextTokenStart()
+    const lookahead = state.lookaheadTypeAndKeyword()
     const hasFrom =
         lookahead.type === tt.name && lookahead.contextualKeyword === ContextualKeyword._from
     if (lookahead.type === tt.comma) {
@@ -2225,14 +2218,14 @@ function isExportDefaultSpecifier(): boolean {
     }
     // lookahead again when `export default from` is seen
     if (hasFrom) {
-        const nextAfterFrom = state.input.charCodeAt(nextTokenStartSince(_next + 4))
+        const nextAfterFrom = state.input.charCodeAt(state.nextTokenStartSince(_next + 4))
         return nextAfterFrom === charCodes.quotationMark || nextAfterFrom === charCodes.apostrophe
     }
     return false
 }
 
 function parseExportSpecifiersMaybe(): void {
-    if (eat(tt.comma)) {
+    if (state.eat(tt.comma)) {
         parseExportSpecifiers()
     }
 }
@@ -2249,7 +2242,7 @@ function shouldParseExportStar(): boolean {
     if (state.isFlowEnabled) {
         return flowShouldParseExportStar()
     } else {
-        return match(tt.star)
+        return state.match(tt.star)
     }
 }
 
@@ -2272,7 +2265,7 @@ export function baseParseExportStar(): void {
 }
 
 function parseExportNamespace(): void {
-    next()
+    state.next()
     state.tokens[state.tokens.length - 1].type = tt._as
     parseIdentifier()
     parseExportSpecifiersMaybe()
@@ -2289,7 +2282,7 @@ function shouldParseExportDeclaration(): boolean {
         state.type === tt._function ||
         state.type === tt._class ||
         isContextual(ContextualKeyword._async) ||
-        match(tt.at)
+        state.match(tt.at)
     )
 }
 
@@ -2300,12 +2293,12 @@ export function parseExportSpecifiers(): void {
     // export { x, y as z } [from '...']
     expect(tt.braceL)
 
-    while (!eat(tt.braceR) && !state.error) {
+    while (!state.eat(tt.braceR) && !state.error) {
         if (first) {
             first = false
         } else {
             expect(tt.comma)
-            if (eat(tt.braceR)) {
+            if (state.eat(tt.braceR)) {
                 break
             }
         }
@@ -2348,7 +2341,7 @@ function isImportReflection(): boolean {
             state.restoreFromSnapshot(snapshot)
             return false
         }
-    } else if (match(tt.comma)) {
+    } else if (state.match(tt.comma)) {
         state.restoreFromSnapshot(snapshot)
         return false
     } else {
@@ -2365,25 +2358,25 @@ function parseMaybeImportReflection(): void {
     // isImportReflection does snapshot/restore, so only run it if we see the word
     // "module".
     if (isContextual(ContextualKeyword._module) && isImportReflection()) {
-        next()
+        state.next()
     }
 }
 
 // Parses import declaration.
 
 export function parseImport(): void {
-    if (state.isTypeScriptEnabled && match(tt.name) && lookaheadType() === tt.eq) {
+    if (state.isTypeScriptEnabled && state.match(tt.name) && state.lookaheadType() === tt.eq) {
         tsParseImportEqualsDeclaration()
         return
     }
     if (state.isTypeScriptEnabled && isContextual(ContextualKeyword._type)) {
-        const lookahead = lookaheadTypeAndKeyword()
+        const lookahead = state.lookaheadTypeAndKeyword()
         if (lookahead.type === tt.name && lookahead.contextualKeyword !== ContextualKeyword._from) {
             // One of these `import type` cases:
             // import type T = require('T');
             // import type A from 'A';
             expectContextual(ContextualKeyword._type)
-            if (lookaheadType() === tt.eq) {
+            if (state.lookaheadType() === tt.eq) {
                 tsParseImportEqualsDeclaration()
                 return
             }
@@ -2400,7 +2393,7 @@ export function parseImport(): void {
     }
 
     // import '...'
-    if (match(tt.string)) {
+    if (state.match(tt.string)) {
         parseExprAtom()
     } else {
         parseMaybeImportReflection()
@@ -2414,7 +2407,7 @@ export function parseImport(): void {
 
 // eslint-disable-next-line no-unused-vars
 function shouldParseDefaultImport(): boolean {
-    return match(tt.name)
+    return state.match(tt.name)
 }
 
 function parseImportSpecifierLocal(): void {
@@ -2432,11 +2425,11 @@ function parseImportSpecifiers(): void {
         // import defaultObj, { x, y as z } from '...'
         parseImportSpecifierLocal()
 
-        if (!eat(tt.comma)) return
+        if (!state.eat(tt.comma)) return
     }
 
-    if (match(tt.star)) {
-        next()
+    if (state.match(tt.star)) {
+        state.next()
         expectContextual(ContextualKeyword._as)
 
         parseImportSpecifierLocal()
@@ -2445,19 +2438,19 @@ function parseImportSpecifiers(): void {
     }
 
     expect(tt.braceL)
-    while (!eat(tt.braceR) && !state.error) {
+    while (!state.eat(tt.braceR) && !state.error) {
         if (first) {
             first = false
         } else {
             // Detect an attempt to deep destructure
-            if (eat(tt.colon)) {
+            if (state.eat(tt.colon)) {
                 unexpected(
                     "ES2015 named imports do not destructure. Use another statement for destructuring after the import.",
                 )
             }
 
             expect(tt.comma)
-            if (eat(tt.braceR)) {
+            if (state.eat(tt.braceR)) {
                 break
             }
         }
@@ -2478,7 +2471,7 @@ function parseImportSpecifier(): void {
     parseImportedIdentifier()
     if (isContextual(ContextualKeyword._as)) {
         state.tokens[state.tokens.length - 1].identifierRole = IdentifierRole.ImportAccess
-        next()
+        state.next()
         parseImportedIdentifier()
     }
 }
@@ -2491,8 +2484,8 @@ function parseImportSpecifier(): void {
  * as a plain JS object, so just do that for simplicity.
  */
 function maybeParseImportAttributes(): void {
-    if (match(tt._with) || (isContextual(ContextualKeyword._assert) && !hasPrecedingLineBreak())) {
-        next()
+    if (state.match(tt._with) || (isContextual(ContextualKeyword._assert) && !hasPrecedingLineBreak())) {
+        state.next()
         parseObj(false, false)
     }
 }
@@ -2542,9 +2535,9 @@ export function parseFile(): File {
         state.input.charCodeAt(0) === charCodes.numberSign &&
         state.input.charCodeAt(1) === charCodes.exclamationMark
     ) {
-        skipLineComment(2)
+        state.scanner.skipLineComment(2)
     }
-    nextToken()
+    state.scanner.nextToken()
     return parseTopLevel()
 }
 // #endregion

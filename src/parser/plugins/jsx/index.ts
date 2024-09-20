@@ -1,12 +1,6 @@
 import {
-  eat,
-  finishToken,
-  getTokenFromCode,
   IdentifierRole,
   JSXRole,
-  match,
-  next,
-  skipSpace,
   Token,
 } from "../../token";
 import {TokenType as tt} from "../../generated/types";
@@ -48,16 +42,16 @@ function jsxReadToken(): void {
       if (state.pos === state.start) {
         if (ch === charCodes.lessThan) {
           state.pos++;
-          finishToken(tt.jsxTagStart);
+          state.scanner.finishToken(tt.jsxTagStart);
           return;
         }
-        getTokenFromCode(ch);
+        state.scanner.getTokenFromCode(ch);
         return;
       }
       if (sawNewline && !sawNonWhitespace) {
-        finishToken(tt.jsxEmptyText);
+        state.scanner.finishToken(tt.jsxEmptyText);
       } else {
-        finishToken(tt.jsxText);
+        state.scanner.finishToken(tt.jsxText);
       }
       return;
     }
@@ -87,7 +81,7 @@ function jsxReadString(quote: number): void {
     }
     state.pos++;
   }
-  finishToken(tt.string);
+  state.scanner.finishToken(tt.string);
 }
 
 // Read a JSX identifier (valid tag or attribute name).
@@ -106,7 +100,7 @@ function jsxReadWord(): void {
     }
     ch = state.input.charCodeAt(++state.pos);
   } while (IS_IDENTIFIER_CHAR[ch] || ch === charCodes.dash);
-  finishToken(tt.jsxName);
+  state.scanner.finishToken(tt.jsxName);
 }
 
 // Parse next token as JSX identifier
@@ -117,7 +111,7 @@ function jsxParseIdentifier(): void {
 // Parse namespaced identifier.
 function jsxParseNamespacedName(identifierRole: IdentifierRole): void {
   jsxParseIdentifier();
-  if (!eat(tt.colon)) {
+  if (!state.eat(tt.colon)) {
     // Plain identifier, so this is an access.
     state.tokens[state.tokens.length - 1].identifierRole = identifierRole;
     return;
@@ -132,7 +126,7 @@ function jsxParseElementName(): void {
   const firstTokenIndex = state.tokens.length;
   jsxParseNamespacedName(IdentifierRole.Access);
   let hadDot = false;
-  while (match(tt.dot)) {
+  while (state.match(tt.dot)) {
     hadDot = true;
     nextJSXTagToken();
     jsxParseIdentifier();
@@ -154,7 +148,7 @@ function jsxParseElementName(): void {
 function jsxParseAttributeValue(): void {
   switch (state.type) {
     case tt.braceL:
-      next();
+      state.next();
       parseExpression();
       nextJSXTagToken();
       return;
@@ -184,7 +178,7 @@ function jsxParseSpreadChild(): void {
 // Returns true if the tag was self-closing.
 // Does not parse the last token.
 function jsxParseOpeningElement(initialTokenIndex: number): boolean {
-  if (match(tt.jsxTagEnd)) {
+  if (state.match(tt.jsxTagEnd)) {
     // This is an open-fragment.
     return false;
   }
@@ -193,8 +187,8 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
     tsTryParseJSXTypeArgument();
   }
   let hasSeenPropSpread = false;
-  while (!match(tt.slash) && !match(tt.jsxTagEnd) && !state.error) {
-    if (eat(tt.braceL)) {
+  while (!state.match(tt.slash) && !state.match(tt.jsxTagEnd) && !state.error) {
+    if (state.eat(tt.braceL)) {
       hasSeenPropSpread = true;
       expect(tt.ellipsis);
       parseMaybeAssign();
@@ -212,12 +206,12 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
       state.tokens[initialTokenIndex].jsxRole = JSXRole.KeyAfterPropSpread;
     }
     jsxParseNamespacedName(IdentifierRole.ObjectKey);
-    if (match(tt.eq)) {
+    if (state.match(tt.eq)) {
       nextJSXTagToken();
       jsxParseAttributeValue();
     }
   }
-  const isSelfClosing = match(tt.slash);
+  const isSelfClosing = state.match(tt.slash);
   if (isSelfClosing) {
     // /
     nextJSXTagToken();
@@ -228,7 +222,7 @@ function jsxParseOpeningElement(initialTokenIndex: number): boolean {
 // Parses JSX closing tag starting after "</".
 // Does not parse the last token.
 function jsxParseClosingElement(): void {
-  if (match(tt.jsxTagEnd)) {
+  if (state.match(tt.jsxTagEnd)) {
     // Fragment syntax, so we immediately have a tag end.
     return;
   }
@@ -249,7 +243,7 @@ function jsxParseElementAt(): void {
       switch (state.type) {
         case tt.jsxTagStart:
           nextJSXTagToken();
-          if (match(tt.slash)) {
+          if (state.match(tt.slash)) {
             nextJSXTagToken();
             jsxParseClosingElement();
             // Key after prop spread takes precedence over number of children,
@@ -279,8 +273,8 @@ function jsxParseElementAt(): void {
           break;
 
         case tt.braceL:
-          next();
-          if (match(tt.ellipsis)) {
+          state.next();
+          if (state.match(tt.ellipsis)) {
             jsxParseSpreadChild();
             nextJSXExprToken();
             // Spread children are a mechanism to explicitly mark children as
@@ -290,7 +284,7 @@ function jsxParseElementAt(): void {
           } else {
             // If we see {}, this is an empty pseudo-expression that doesn't
             // count as a child.
-            if (!match(tt.braceR)) {
+            if (!state.match(tt.braceR)) {
               numExplicitChildren++;
               parseExpression();
             }
@@ -320,8 +314,8 @@ export function jsxParseElement(): void {
 // ==================================
 
 export function nextJSXTagToken(): void {
-  state.tokens.push(new Token());
-  skipSpace();
+  state.tokens.push(new Token(state));
+  state.scanner.skipSpace();
   state.start = state.pos;
   const code = state.input.charCodeAt(state.pos);
 
@@ -334,25 +328,25 @@ export function nextJSXTagToken(): void {
     ++state.pos;
     switch (code) {
       case charCodes.greaterThan:
-        finishToken(tt.jsxTagEnd);
+        state.scanner.finishToken(tt.jsxTagEnd);
         break;
       case charCodes.lessThan:
-        finishToken(tt.jsxTagStart);
+        state.scanner.finishToken(tt.jsxTagStart);
         break;
       case charCodes.slash:
-        finishToken(tt.slash);
+        state.scanner.finishToken(tt.slash);
         break;
       case charCodes.equalsTo:
-        finishToken(tt.eq);
+        state.scanner.finishToken(tt.eq);
         break;
       case charCodes.leftCurlyBrace:
-        finishToken(tt.braceL);
+        state.scanner.finishToken(tt.braceL);
         break;
       case charCodes.dot:
-        finishToken(tt.dot);
+        state.scanner.finishToken(tt.dot);
         break;
       case charCodes.colon:
-        finishToken(tt.colon);
+        state.scanner.finishToken(tt.colon);
         break;
       default:
         unexpected();
@@ -361,7 +355,7 @@ export function nextJSXTagToken(): void {
 }
 
 function nextJSXExprToken(): void {
-  state.tokens.push(new Token());
+  state.tokens.push(new Token(state));
   state.start = state.pos;
   jsxReadToken();
 }

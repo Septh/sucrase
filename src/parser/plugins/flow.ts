@@ -1,11 +1,4 @@
 import {
-  eat,
-  lookaheadType,
-  lookaheadTypeAndKeyword,
-  match,
-  next,
-  popTypeContext,
-  pushTypeContext,
   type TypeAndKeyword,
 } from "../token";
 import {ContextualKeyword} from "../keywords";
@@ -53,45 +46,45 @@ function isMaybeDefaultImport(lookahead: TypeAndKeyword): boolean {
 }
 
 function flowParseTypeInitialiser(tok?: TokenType): void {
-  const oldIsType = pushTypeContext(0);
+  const oldIsType = state.pushTypeContext(0);
   expect(tok || tt.colon);
   flowParseType();
-  popTypeContext(oldIsType);
+  state.popTypeContext(oldIsType);
 }
 
 function flowParsePredicate(): void {
   expect(tt.modulo);
   expectContextual(ContextualKeyword._checks);
-  if (eat(tt.parenL)) {
+  if (state.eat(tt.parenL)) {
     parseExpression();
     expect(tt.parenR);
   }
 }
 
 function flowParseTypeAndPredicateInitialiser(): void {
-  const oldIsType = pushTypeContext(0);
+  const oldIsType = state.pushTypeContext(0);
   expect(tt.colon);
-  if (match(tt.modulo)) {
+  if (state.match(tt.modulo)) {
     flowParsePredicate();
   } else {
     flowParseType();
-    if (match(tt.modulo)) {
+    if (state.match(tt.modulo)) {
       flowParsePredicate();
     }
   }
-  popTypeContext(oldIsType);
+  state.popTypeContext(oldIsType);
 }
 
 function flowParseDeclareClass(): void {
-  next();
+  state.next();
   flowParseInterfaceish(/* isClass */ true);
 }
 
 function flowParseDeclareFunction(): void {
-  next();
+  state.next();
   parseIdentifier();
 
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
   }
 
@@ -105,14 +98,14 @@ function flowParseDeclareFunction(): void {
 }
 
 function flowParseDeclare(): void {
-  if (match(tt._class)) {
+  if (state.match(tt._class)) {
     flowParseDeclareClass();
-  } else if (match(tt._function)) {
+  } else if (state.match(tt._function)) {
     flowParseDeclareFunction();
-  } else if (match(tt._var)) {
+  } else if (state.match(tt._var)) {
     flowParseDeclareVariable();
   } else if (eatContextual(ContextualKeyword._module)) {
-    if (eat(tt.dot)) {
+    if (state.eat(tt.dot)) {
       flowParseDeclareModuleExports();
     } else {
       flowParseDeclareModule();
@@ -123,7 +116,7 @@ function flowParseDeclare(): void {
     flowParseDeclareOpaqueType();
   } else if (isContextual(ContextualKeyword._interface)) {
     flowParseDeclareInterface();
-  } else if (match(tt._export)) {
+  } else if (state.match(tt._export)) {
     flowParseDeclareExportDeclaration();
   } else {
     unexpected();
@@ -131,22 +124,22 @@ function flowParseDeclare(): void {
 }
 
 function flowParseDeclareVariable(): void {
-  next();
+  state.next();
   flowParseTypeAnnotatableIdentifier();
   semicolon();
 }
 
 function flowParseDeclareModule(): void {
-  if (match(tt.string)) {
+  if (state.match(tt.string)) {
     parseExprAtom();
   } else {
     parseIdentifier();
   }
 
   expect(tt.braceL);
-  while (!match(tt.braceR) && !state.error) {
-    if (match(tt._import)) {
-      next();
+  while (!state.match(tt.braceR) && !state.error) {
+    if (state.match(tt._import)) {
+      state.next();
       parseImport();
     } else {
       unexpected();
@@ -158,8 +151,8 @@ function flowParseDeclareModule(): void {
 function flowParseDeclareExportDeclaration(): void {
   expect(tt._export);
 
-  if (eat(tt._default)) {
-    if (match(tt._function) || match(tt._class)) {
+  if (state.eat(tt._default)) {
+    if (state.match(tt._function) || state.match(tt._class)) {
       // declare export default class ...
       // declare export default function ...
       flowParseDeclare();
@@ -169,15 +162,15 @@ function flowParseDeclareExportDeclaration(): void {
       semicolon();
     }
   } else if (
-    match(tt._var) || // declare export var ...
-    match(tt._function) || // declare export function ...
-    match(tt._class) || // declare export class ...
+    state.match(tt._var) || // declare export var ...
+    state.match(tt._function) || // declare export function ...
+    state.match(tt._class) || // declare export class ...
     isContextual(ContextualKeyword._opaque) // declare export opaque ..
   ) {
     flowParseDeclare();
   } else if (
-    match(tt.star) || // declare export * from ''
-    match(tt.braceL) || // declare export {} ...
+    state.match(tt.star) || // declare export * from ''
+    state.match(tt.braceL) || // declare export {} ...
     isContextual(ContextualKeyword._interface) || // declare export interface ...
     isContextual(ContextualKeyword._type) || // declare export type ...
     isContextual(ContextualKeyword._opaque) // declare export opaque type ...
@@ -195,17 +188,17 @@ function flowParseDeclareModuleExports(): void {
 }
 
 function flowParseDeclareTypeAlias(): void {
-  next();
+  state.next();
   flowParseTypeAlias();
 }
 
 function flowParseDeclareOpaqueType(): void {
-  next();
+  state.next();
   flowParseOpaqueType(true);
 }
 
 function flowParseDeclareInterface(): void {
-  next();
+  state.next();
   flowParseInterfaceish();
 }
 
@@ -214,28 +207,28 @@ function flowParseDeclareInterface(): void {
 function flowParseInterfaceish(isClass: boolean = false): void {
   flowParseRestrictedIdentifier();
 
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
   }
 
-  if (eat(tt._extends)) {
+  if (state.eat(tt._extends)) {
     do {
       flowParseInterfaceExtends();
-    } while (!isClass && eat(tt.comma));
+    } while (!isClass && state.eat(tt.comma));
   }
 
   if (isContextual(ContextualKeyword._mixins)) {
-    next();
+    state.next();
     do {
       flowParseInterfaceExtends();
-    } while (eat(tt.comma));
+    } while (state.eat(tt.comma));
   }
 
   if (isContextual(ContextualKeyword._implements)) {
-    next();
+    state.next();
     do {
       flowParseInterfaceExtends();
-    } while (eat(tt.comma));
+    } while (state.eat(tt.comma));
   }
 
   flowParseObjectType(isClass, false, isClass);
@@ -243,7 +236,7 @@ function flowParseInterfaceish(isClass: boolean = false): void {
 
 function flowParseInterfaceExtends(): void {
   flowParseQualifiedTypeIdentifier(false);
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterInstantiation();
   }
 }
@@ -259,7 +252,7 @@ function flowParseRestrictedIdentifier(): void {
 function flowParseTypeAlias(): void {
   flowParseRestrictedIdentifier();
 
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
   }
 
@@ -271,12 +264,12 @@ function flowParseOpaqueType(declare: boolean): void {
   expectContextual(ContextualKeyword._type);
   flowParseRestrictedIdentifier();
 
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
   }
 
   // Parse the supertype
-  if (match(tt.colon)) {
+  if (state.match(tt.colon)) {
     flowParseTypeInitialiser(tt.colon);
   }
 
@@ -290,55 +283,55 @@ function flowParseTypeParameter(): void {
   flowParseVariance();
   flowParseTypeAnnotatableIdentifier();
 
-  if (eat(tt.eq)) {
+  if (state.eat(tt.eq)) {
     flowParseType();
   }
 }
 
 export function flowParseTypeParameterDeclaration(): void {
-  const oldIsType = pushTypeContext(0);
+  const oldIsType = state.pushTypeContext(0);
   // istanbul ignore else: this condition is already checked at all call sites
-  if (match(tt.lessThan) || match(tt.typeParameterStart)) {
-    next();
+  if (state.match(tt.lessThan) || state.match(tt.typeParameterStart)) {
+    state.next();
   } else {
     unexpected();
   }
 
   do {
     flowParseTypeParameter();
-    if (!match(tt.greaterThan)) {
+    if (!state.match(tt.greaterThan)) {
       expect(tt.comma);
     }
-  } while (!match(tt.greaterThan) && !state.error);
+  } while (!state.match(tt.greaterThan) && !state.error);
   expect(tt.greaterThan);
-  popTypeContext(oldIsType);
+  state.popTypeContext(oldIsType);
 }
 
 function flowParseTypeParameterInstantiation(): void {
-  const oldIsType = pushTypeContext(0);
+  const oldIsType = state.pushTypeContext(0);
   expect(tt.lessThan);
-  while (!match(tt.greaterThan) && !state.error) {
+  while (!state.match(tt.greaterThan) && !state.error) {
     flowParseType();
-    if (!match(tt.greaterThan)) {
+    if (!state.match(tt.greaterThan)) {
       expect(tt.comma);
     }
   }
   expect(tt.greaterThan);
-  popTypeContext(oldIsType);
+  state.popTypeContext(oldIsType);
 }
 
 function flowParseInterfaceType(): void {
   expectContextual(ContextualKeyword._interface);
-  if (eat(tt._extends)) {
+  if (state.eat(tt._extends)) {
     do {
       flowParseInterfaceExtends();
-    } while (eat(tt.comma));
+    } while (state.eat(tt.comma));
   }
   flowParseObjectType(false, false, false);
 }
 
 function flowParseObjectPropertyKey(): void {
-  if (match(tt.num) || match(tt.string)) {
+  if (state.match(tt.num) || state.match(tt.string)) {
     parseExprAtom();
   } else {
     parseIdentifier();
@@ -347,7 +340,7 @@ function flowParseObjectPropertyKey(): void {
 
 function flowParseObjectTypeIndexer(): void {
   // Note: bracketL has already been consumed
-  if (lookaheadType() === tt.colon) {
+  if (state.lookaheadType() === tt.colon) {
     flowParseObjectPropertyKey();
     flowParseTypeInitialiser();
   } else {
@@ -362,28 +355,28 @@ function flowParseObjectTypeInternalSlot(): void {
   flowParseObjectPropertyKey();
   expect(tt.bracketR);
   expect(tt.bracketR);
-  if (match(tt.lessThan) || match(tt.parenL)) {
+  if (state.match(tt.lessThan) || state.match(tt.parenL)) {
     flowParseObjectTypeMethodish();
   } else {
-    eat(tt.question);
+    state.eat(tt.question);
     flowParseTypeInitialiser();
   }
 }
 
 function flowParseObjectTypeMethodish(): void {
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
   }
 
   expect(tt.parenL);
-  while (!match(tt.parenR) && !match(tt.ellipsis) && !state.error) {
+  while (!state.match(tt.parenR) && !state.match(tt.ellipsis) && !state.error) {
     flowParseFunctionTypeParam();
-    if (!match(tt.parenR)) {
+    if (!state.match(tt.parenR)) {
       expect(tt.comma);
     }
   }
 
-  if (eat(tt.ellipsis)) {
+  if (state.eat(tt.ellipsis)) {
     flowParseFunctionTypeParam();
   }
   expect(tt.parenR);
@@ -396,7 +389,7 @@ function flowParseObjectTypeCallProperty(): void {
 
 function flowParseObjectType(allowStatic: boolean, allowExact: boolean, allowProto: boolean): void {
   let endDelim: TokenType;
-  if (allowExact && match(tt.braceBarL)) {
+  if (allowExact && state.match(tt.braceBarL)) {
     expect(tt.braceBarL);
     endDelim = tt.braceBarR;
   } else {
@@ -404,36 +397,36 @@ function flowParseObjectType(allowStatic: boolean, allowExact: boolean, allowPro
     endDelim = tt.braceR;
   }
 
-  while (!match(endDelim) && !state.error) {
+  while (!state.match(endDelim) && !state.error) {
     if (allowProto && isContextual(ContextualKeyword._proto)) {
-      const lookahead = lookaheadType();
+      const lookahead = state.lookaheadType();
       if (lookahead !== tt.colon && lookahead !== tt.question) {
-        next();
+        state.next();
         allowStatic = false;
       }
     }
     if (allowStatic && isContextual(ContextualKeyword._static)) {
-      const lookahead = lookaheadType();
+      const lookahead = state.lookaheadType();
       if (lookahead !== tt.colon && lookahead !== tt.question) {
-        next();
+        state.next();
       }
     }
 
     flowParseVariance();
 
-    if (eat(tt.bracketL)) {
-      if (eat(tt.bracketL)) {
+    if (state.eat(tt.bracketL)) {
+      if (state.eat(tt.bracketL)) {
         flowParseObjectTypeInternalSlot();
       } else {
         flowParseObjectTypeIndexer();
       }
-    } else if (match(tt.parenL) || match(tt.lessThan)) {
+    } else if (state.match(tt.parenL) || state.match(tt.lessThan)) {
       flowParseObjectTypeCallProperty();
     } else {
       if (isContextual(ContextualKeyword._get) || isContextual(ContextualKeyword._set)) {
-        const lookahead = lookaheadType();
+        const lookahead = state.lookaheadType();
         if (lookahead === tt.name || lookahead === tt.string || lookahead === tt.num) {
-          next();
+          state.next();
         }
       }
 
@@ -447,30 +440,30 @@ function flowParseObjectType(allowStatic: boolean, allowExact: boolean, allowPro
 }
 
 function flowParseObjectTypeProperty(): void {
-  if (match(tt.ellipsis)) {
+  if (state.match(tt.ellipsis)) {
     expect(tt.ellipsis);
-    if (!eat(tt.comma)) {
-      eat(tt.semi);
+    if (!state.eat(tt.comma)) {
+      state.eat(tt.semi);
     }
     // Explicit inexact object syntax.
-    if (match(tt.braceR)) {
+    if (state.match(tt.braceR)) {
       return;
     }
     flowParseType();
   } else {
     flowParseObjectPropertyKey();
-    if (match(tt.lessThan) || match(tt.parenL)) {
+    if (state.match(tt.lessThan) || state.match(tt.parenL)) {
       // This is a method property
       flowParseObjectTypeMethodish();
     } else {
-      eat(tt.question);
+      state.eat(tt.question);
       flowParseTypeInitialiser();
     }
   }
 }
 
 function flowObjectTypeSemicolon(): void {
-  if (!eat(tt.semi) && !eat(tt.comma) && !match(tt.braceR) && !match(tt.braceBarR)) {
+  if (!state.eat(tt.semi) && !state.eat(tt.comma) && !state.match(tt.braceR) && !state.match(tt.braceBarR)) {
     unexpected();
   }
 }
@@ -479,14 +472,14 @@ function flowParseQualifiedTypeIdentifier(initialIdAlreadyParsed: boolean): void
   if (!initialIdAlreadyParsed) {
     parseIdentifier();
   }
-  while (eat(tt.dot)) {
+  while (state.eat(tt.dot)) {
     parseIdentifier();
   }
 }
 
 function flowParseGenericType(): void {
   flowParseQualifiedTypeIdentifier(true);
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterInstantiation();
   }
 }
@@ -499,9 +492,9 @@ function flowParseTypeofType(): void {
 function flowParseTupleType(): void {
   expect(tt.bracketL);
   // We allow trailing commas
-  while (state.pos < state.input.length && !match(tt.bracketR)) {
+  while (state.pos < state.input.length && !state.match(tt.bracketR)) {
     flowParseType();
-    if (match(tt.bracketR)) {
+    if (state.match(tt.bracketR)) {
       break;
     }
     expect(tt.comma);
@@ -510,10 +503,10 @@ function flowParseTupleType(): void {
 }
 
 function flowParseFunctionTypeParam(): void {
-  const lookahead = lookaheadType();
+  const lookahead = state.lookaheadType();
   if (lookahead === tt.colon || lookahead === tt.question) {
     parseIdentifier();
-    eat(tt.question);
+    state.eat(tt.question);
     flowParseTypeInitialiser();
   } else {
     flowParseType();
@@ -521,13 +514,13 @@ function flowParseFunctionTypeParam(): void {
 }
 
 function flowParseFunctionTypeParams(): void {
-  while (!match(tt.parenR) && !match(tt.ellipsis) && !state.error) {
+  while (!state.match(tt.parenR) && !state.match(tt.ellipsis) && !state.error) {
     flowParseFunctionTypeParam();
-    if (!match(tt.parenR)) {
+    if (!state.match(tt.parenR)) {
       expect(tt.comma);
     }
   }
-  if (eat(tt.ellipsis)) {
+  if (state.eat(tt.ellipsis)) {
     flowParseFunctionTypeParam();
   }
 }
@@ -572,12 +565,12 @@ function flowParsePrimaryType(): void {
       return;
 
     case tt.parenL:
-      next();
+      state.next();
 
       // Check to see if this is actually a grouped type
-      if (!match(tt.parenR) && !match(tt.ellipsis)) {
-        if (match(tt.name)) {
-          const token = lookaheadType();
+      if (!state.match(tt.parenR) && !state.match(tt.ellipsis)) {
+        if (state.match(tt.name)) {
+          const token = state.lookaheadType();
           isGroupedType = token !== tt.question && token !== tt.colon;
         } else {
           isGroupedType = true;
@@ -592,13 +585,13 @@ function flowParsePrimaryType(): void {
         // A `,` or a `) =>` means this is an anonymous function type
         if (
           state.noAnonFunctionType ||
-          !(match(tt.comma) || (match(tt.parenR) && lookaheadType() === tt.arrow))
+          !(state.match(tt.comma) || (state.match(tt.parenR) && state.lookaheadType() === tt.arrow))
         ) {
           expect(tt.parenR);
           return;
         } else {
           // Eat a comma if there is one
-          eat(tt.comma);
+          state.eat(tt.comma);
         }
       }
 
@@ -610,7 +603,7 @@ function flowParsePrimaryType(): void {
       return;
 
     case tt.minus:
-      next();
+      state.next();
       parseLiteral();
       return;
 
@@ -622,7 +615,7 @@ function flowParsePrimaryType(): void {
     case tt._this:
     case tt._void:
     case tt.star:
-      next();
+      state.next();
       return;
 
     default:
@@ -630,7 +623,7 @@ function flowParsePrimaryType(): void {
         flowParseTypeofType();
         return;
       } else if (state.type & TokenType.IS_KEYWORD) {
-        next();
+        state.next();
         state.tokens[state.tokens.length - 1].type = tt.name;
         return;
       }
@@ -641,10 +634,10 @@ function flowParsePrimaryType(): void {
 
 function flowParsePostfixType(): void {
   flowParsePrimaryType();
-  while (!canInsertSemicolon() && (match(tt.bracketL) || match(tt.questionDot))) {
-    eat(tt.questionDot);
+  while (!canInsertSemicolon() && (state.match(tt.bracketL) || state.match(tt.questionDot))) {
+    state.eat(tt.questionDot);
     expect(tt.bracketL);
-    if (eat(tt.bracketR)) {
+    if (state.eat(tt.bracketR)) {
       // Array type
     } else {
       // Indexed access type
@@ -655,7 +648,7 @@ function flowParsePostfixType(): void {
 }
 
 function flowParsePrefixType(): void {
-  if (eat(tt.question)) {
+  if (state.eat(tt.question)) {
     flowParsePrefixType();
   } else {
     flowParsePostfixType();
@@ -664,23 +657,23 @@ function flowParsePrefixType(): void {
 
 function flowParseAnonFunctionWithoutParens(): void {
   flowParsePrefixType();
-  if (!state.noAnonFunctionType && eat(tt.arrow)) {
+  if (!state.noAnonFunctionType && state.eat(tt.arrow)) {
     flowParseType();
   }
 }
 
 function flowParseIntersectionType(): void {
-  eat(tt.bitwiseAND);
+  state.eat(tt.bitwiseAND);
   flowParseAnonFunctionWithoutParens();
-  while (eat(tt.bitwiseAND)) {
+  while (state.eat(tt.bitwiseAND)) {
     flowParseAnonFunctionWithoutParens();
   }
 }
 
 function flowParseUnionType(): void {
-  eat(tt.bitwiseOR);
+  state.eat(tt.bitwiseOR);
   flowParseIntersectionType();
-  while (eat(tt.bitwiseOR)) {
+  while (state.eat(tt.bitwiseOR)) {
     flowParseIntersectionType();
   }
 }
@@ -695,14 +688,14 @@ export function flowParseTypeAnnotation(): void {
 
 function flowParseTypeAnnotatableIdentifier(): void {
   parseIdentifier();
-  if (match(tt.colon)) {
+  if (state.match(tt.colon)) {
     flowParseTypeAnnotation();
   }
 }
 
 export function flowParseVariance(): void {
-  if (match(tt.plus) || match(tt.minus)) {
-    next();
+  if (state.match(tt.plus) || state.match(tt.minus)) {
+    state.next();
     state.tokens[state.tokens.length - 1].isType = true;
   }
 }
@@ -713,7 +706,7 @@ export function flowParseVariance(): void {
 
 export function flowParseFunctionBodyAndFinish(funcContextId: number): void {
   // For arrow functions, `parseArrow` handles the return type itself.
-  if (match(tt.colon)) {
+  if (state.match(tt.colon)) {
     flowParseTypeAndPredicateInitialiser();
   }
 
@@ -725,17 +718,17 @@ export function flowParseSubscript(
   noCalls: boolean,
   stopState: StopState,
 ): void {
-  if (match(tt.questionDot) && lookaheadType() === tt.lessThan) {
+  if (state.match(tt.questionDot) && state.lookaheadType() === tt.lessThan) {
     if (noCalls) {
       stopState.stop = true;
       return;
     }
-    next();
+    state.next();
     flowParseTypeParameterInstantiation();
     expect(tt.parenL);
     parseCallExpressionArguments();
     return;
-  } else if (!noCalls && match(tt.lessThan)) {
+  } else if (!noCalls && state.match(tt.lessThan)) {
     const snapshot = state.snapshot();
     flowParseTypeParameterInstantiation();
     expect(tt.parenL);
@@ -750,7 +743,7 @@ export function flowParseSubscript(
 }
 
 export function flowStartParseNewArguments(): void {
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     const snapshot = state.snapshot();
     flowParseTypeParameterInstantiation();
     if (state.error) {
@@ -761,11 +754,11 @@ export function flowStartParseNewArguments(): void {
 
 // interfaces
 export function flowTryParseStatement(): boolean {
-  if (match(tt.name) && state.contextualKeyword === ContextualKeyword._interface) {
-    const oldIsType = pushTypeContext(0);
-    next();
+  if (state.match(tt.name) && state.contextualKeyword === ContextualKeyword._interface) {
+    const oldIsType = state.pushTypeContext(0);
+    state.next();
     flowParseInterface();
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
     return true;
   } else if (isContextual(ContextualKeyword._enum)) {
     flowParseEnumDeclaration();
@@ -786,29 +779,29 @@ export function flowTryParseExportDefaultExpression(): boolean {
 export function flowParseIdentifierStatement(contextualKeyword: ContextualKeyword): void {
   if (contextualKeyword === ContextualKeyword._declare) {
     if (
-      match(tt._class) ||
-      match(tt.name) ||
-      match(tt._function) ||
-      match(tt._var) ||
-      match(tt._export)
+      state.match(tt._class) ||
+      state.match(tt.name) ||
+      state.match(tt._function) ||
+      state.match(tt._var) ||
+      state.match(tt._export)
     ) {
-      const oldIsType = pushTypeContext(1);
+      const oldIsType = state.pushTypeContext(1);
       flowParseDeclare();
-      popTypeContext(oldIsType);
+      state.popTypeContext(oldIsType);
     }
-  } else if (match(tt.name)) {
+  } else if (state.match(tt.name)) {
     if (contextualKeyword === ContextualKeyword._interface) {
-      const oldIsType = pushTypeContext(1);
+      const oldIsType = state.pushTypeContext(1);
       flowParseInterface();
-      popTypeContext(oldIsType);
+      state.popTypeContext(oldIsType);
     } else if (contextualKeyword === ContextualKeyword._type) {
-      const oldIsType = pushTypeContext(1);
+      const oldIsType = state.pushTypeContext(1);
       flowParseTypeAlias();
-      popTypeContext(oldIsType);
+      state.popTypeContext(oldIsType);
     } else if (contextualKeyword === ContextualKeyword._opaque) {
-      const oldIsType = pushTypeContext(1);
+      const oldIsType = state.pushTypeContext(1);
       flowParseOpaqueType(false);
-      popTypeContext(oldIsType);
+      state.popTypeContext(oldIsType);
     }
   }
   semicolon();
@@ -826,7 +819,7 @@ export function flowShouldParseExportDeclaration(): boolean {
 
 export function flowShouldDisallowExportDefaultSpecifier(): boolean {
   return (
-    match(tt.name) &&
+    state.match(tt.name) &&
     (state.contextualKeyword === ContextualKeyword._type ||
       state.contextualKeyword === ContextualKeyword._interface ||
       state.contextualKeyword === ContextualKeyword._opaque ||
@@ -836,10 +829,10 @@ export function flowShouldDisallowExportDefaultSpecifier(): boolean {
 
 export function flowParseExportDeclaration(): void {
   if (isContextual(ContextualKeyword._type)) {
-    const oldIsType = pushTypeContext(1);
-    next();
+    const oldIsType = state.pushTypeContext(1);
+    state.next();
 
-    if (match(tt.braceL)) {
+    if (state.match(tt.braceL)) {
       // export type { foo, bar };
       parseExportSpecifiers();
       parseExportFrom();
@@ -847,32 +840,32 @@ export function flowParseExportDeclaration(): void {
       // export type Foo = Bar;
       flowParseTypeAlias();
     }
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   } else if (isContextual(ContextualKeyword._opaque)) {
-    const oldIsType = pushTypeContext(1);
-    next();
+    const oldIsType = state.pushTypeContext(1);
+    state.next();
     // export opaque type Foo = Bar;
     flowParseOpaqueType(false);
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   } else if (isContextual(ContextualKeyword._interface)) {
-    const oldIsType = pushTypeContext(1);
-    next();
+    const oldIsType = state.pushTypeContext(1);
+    state.next();
     flowParseInterface();
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   } else {
     parseStatement(true);
   }
 }
 
 export function flowShouldParseExportStar(): boolean {
-  return match(tt.star) || (isContextual(ContextualKeyword._type) && lookaheadType() === tt.star);
+  return state.match(tt.star) || (isContextual(ContextualKeyword._type) && state.lookaheadType() === tt.star);
 }
 
 export function flowParseExportStar(): void {
   if (eatContextual(ContextualKeyword._type)) {
-    const oldIsType = pushTypeContext(2);
+    const oldIsType = state.pushTypeContext(2);
     baseParseExportStar();
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   } else {
     baseParseExportStar();
   }
@@ -880,47 +873,47 @@ export function flowParseExportStar(): void {
 
 // parse a the super class type parameters and implements
 export function flowAfterParseClassSuper(hasSuper: boolean): void {
-  if (hasSuper && match(tt.lessThan)) {
+  if (hasSuper && state.match(tt.lessThan)) {
     flowParseTypeParameterInstantiation();
   }
   if (isContextual(ContextualKeyword._implements)) {
-    const oldIsType = pushTypeContext(0);
-    next();
+    const oldIsType = state.pushTypeContext(0);
+    state.next();
     state.tokens[state.tokens.length - 1].type = tt._implements;
     do {
       flowParseRestrictedIdentifier();
-      if (match(tt.lessThan)) {
+      if (state.match(tt.lessThan)) {
         flowParseTypeParameterInstantiation();
       }
-    } while (eat(tt.comma));
-    popTypeContext(oldIsType);
+    } while (state.eat(tt.comma));
+    state.popTypeContext(oldIsType);
   }
 }
 
 // parse type parameters for object method shorthand
 export function flowStartParseObjPropValue(): void {
   // method shorthand
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     flowParseTypeParameterDeclaration();
-    if (!match(tt.parenL)) unexpected();
+    if (!state.match(tt.parenL)) unexpected();
   }
 }
 
 export function flowParseAssignableListItemTypes(): void {
-  const oldIsType = pushTypeContext(0);
-  eat(tt.question);
-  if (match(tt.colon)) {
+  const oldIsType = state.pushTypeContext(0);
+  state.eat(tt.question);
+  if (state.match(tt.colon)) {
     flowParseTypeAnnotation();
   }
-  popTypeContext(oldIsType);
+  state.popTypeContext(oldIsType);
 }
 
 // parse typeof and type imports
 export function flowStartParseImportSpecifiers(): void {
-  if (match(tt._typeof) || isContextual(ContextualKeyword._type)) {
-    const lh = lookaheadTypeAndKeyword();
+  if (state.match(tt._typeof) || isContextual(ContextualKeyword._type)) {
+    const lh = state.lookaheadTypeAndKeyword();
     if (isMaybeDefaultImport(lh) || lh.type === tt.braceL || lh.type === tt.star) {
-      next();
+      state.next();
     }
   }
 }
@@ -930,21 +923,21 @@ export function flowParseImportSpecifier(): void {
   const isTypeKeyword =
     state.contextualKeyword === ContextualKeyword._type || state.type === tt._typeof;
   if (isTypeKeyword) {
-    next();
+    state.next();
   } else {
     parseIdentifier();
   }
 
   if (isContextual(ContextualKeyword._as) && !isLookaheadContextual(ContextualKeyword._as)) {
     parseIdentifier();
-    if (isTypeKeyword && !match(tt.name) && !(state.type & TokenType.IS_KEYWORD)) {
+    if (isTypeKeyword && !state.match(tt.name) && !(state.type & TokenType.IS_KEYWORD)) {
       // `import {type as ,` or `import {type as }`
     } else {
       // `import {type as foo`
       parseIdentifier();
     }
   } else {
-    if (isTypeKeyword && (match(tt.name) || !!(state.type & TokenType.IS_KEYWORD))) {
+    if (isTypeKeyword && (state.match(tt.name) || !!(state.type & TokenType.IS_KEYWORD))) {
       // `import {type foo`
       parseIdentifier();
     }
@@ -958,23 +951,23 @@ export function flowParseImportSpecifier(): void {
 export function flowStartParseFunctionParams(): void {
   // Originally this checked if the method is a getter/setter, but if it was, we'd crash soon
   // anyway, so don't try to propagate that information.
-  if (match(tt.lessThan)) {
-    const oldIsType = pushTypeContext(0);
+  if (state.match(tt.lessThan)) {
+    const oldIsType = state.pushTypeContext(0);
     flowParseTypeParameterDeclaration();
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   }
 }
 
 // parse flow type annotations on variable declarator heads - let foo: string = bar
 export function flowAfterParseVarHead(): void {
-  if (match(tt.colon)) {
+  if (state.match(tt.colon)) {
     flowParseTypeAnnotation();
   }
 }
 
 // parse the return type of an async arrow function - let foo = (async (): number => {});
 export function flowStartParseAsyncArrowFromCallExpression(): void {
-  if (match(tt.colon)) {
+  if (state.match(tt.colon)) {
     const oldNoAnonFunctionType = state.noAnonFunctionType;
     state.noAnonFunctionType = true;
     flowParseTypeAnnotation();
@@ -993,7 +986,7 @@ export function flowStartParseAsyncArrowFromCallExpression(): void {
 //    there
 // 3. This is neither. Just call the super method
 export function flowParseMaybeAssign(noIn: boolean, isWithinParens: boolean): boolean {
-  if (match(tt.lessThan)) {
+  if (state.match(tt.lessThan)) {
     const snapshot = state.snapshot();
     let wasArrow = baseParseMaybeAssign(noIn, isWithinParens);
     if (state.error) {
@@ -1003,9 +996,9 @@ export function flowParseMaybeAssign(noIn: boolean, isWithinParens: boolean): bo
       return wasArrow;
     }
 
-    const oldIsType = pushTypeContext(0);
+    const oldIsType = state.pushTypeContext(0);
     flowParseTypeParameterDeclaration();
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
     wasArrow = baseParseMaybeAssign(noIn, isWithinParens);
     if (wasArrow) {
       return true;
@@ -1018,8 +1011,8 @@ export function flowParseMaybeAssign(noIn: boolean, isWithinParens: boolean): bo
 
 // handle return types for arrow functions
 export function flowParseArrow(): boolean {
-  if (match(tt.colon)) {
-    const oldIsType = pushTypeContext(0);
+  if (state.match(tt.colon)) {
+    const oldIsType = state.pushTypeContext(0);
     const snapshot = state.snapshot();
 
     const oldNoAnonFunctionType = state.noAnonFunctionType;
@@ -1028,20 +1021,20 @@ export function flowParseArrow(): boolean {
     state.noAnonFunctionType = oldNoAnonFunctionType;
 
     if (canInsertSemicolon()) unexpected();
-    if (!match(tt.arrow)) unexpected();
+    if (!state.match(tt.arrow)) unexpected();
 
     if (state.error) {
       state.restoreFromSnapshot(snapshot);
     }
-    popTypeContext(oldIsType);
+    state.popTypeContext(oldIsType);
   }
-  return eat(tt.arrow);
+  return state.eat(tt.arrow);
 }
 
 export function flowParseSubscripts(startTokenIndex: number, noCalls: boolean = false): void {
   if (
     state.tokens[state.tokens.length - 1].contextualKeyword === ContextualKeyword._async &&
-    match(tt.lessThan)
+    state.match(tt.lessThan)
   ) {
     const snapshot = state.snapshot();
     const wasArrow = parseAsyncArrowWithTypeParameters();
@@ -1075,7 +1068,7 @@ function flowParseEnumDeclaration(): void {
 
 function flowParseEnumBody(): void {
   if (eatContextual(ContextualKeyword._of)) {
-    next();
+    state.next();
   }
   expect(tt.braceL);
   flowParseEnumMembers();
@@ -1083,12 +1076,12 @@ function flowParseEnumBody(): void {
 }
 
 function flowParseEnumMembers(): void {
-  while (!match(tt.braceR) && !state.error) {
-    if (eat(tt.ellipsis)) {
+  while (!state.match(tt.braceR) && !state.error) {
+    if (state.eat(tt.ellipsis)) {
       break;
     }
     flowParseEnumMember();
-    if (!match(tt.braceR)) {
+    if (!state.match(tt.braceR)) {
       expect(tt.comma);
     }
   }
@@ -1096,8 +1089,8 @@ function flowParseEnumMembers(): void {
 
 function flowParseEnumMember(): void {
   parseIdentifier();
-  if (eat(tt.eq)) {
+  if (state.eat(tt.eq)) {
     // Flow enum values are always just one token (a string, number, or boolean literal).
-    next();
+    state.next();
   }
 }
