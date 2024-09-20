@@ -3,7 +3,7 @@ import LinesAndColumns from "lines-and-columns";
 import type {Token} from "../parser/token";
 import {formatTokenType} from "../parser/generated/types";
 
-export default function formatTokens(code: string, tokens: Array<Token>): string {
+export function formatTokens(code: string, tokens: Array<Token>): string {
   if (tokens.length === 0) {
     return "";
   }

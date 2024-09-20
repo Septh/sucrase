@@ -1,11 +1,11 @@
 import * as assert from "assert";
 
-import CJSImportProcessor from "../src/CJSImportProcessor";
+import {CJSImportProcessor} from "../src/CJSImportProcessor";
 import {HelperManager} from "../src/HelperManager";
 import {hasShadowedGlobals} from "../src/identifyShadowedGlobals";
-import NameManager from "../src/NameManager";
+import {NameManager} from "../src/NameManager";
 import {parse} from "../src/parser";
-import TokenProcessor from "../src/TokenProcessor";
+import {TokenProcessor} from "../src/TokenProcessor";
 
 function assertHasShadowedGlobals(code: string, expected: boolean): void {
   const file = parse(code, false, true, false);
@@ -48,7 +48,7 @@ describe("identifyShadowedGlobals", () => {
     assertHasShadowedGlobals(
       `
       import a from 'a';
-      
+
       export const b = 3;
     `,
       false,
@@ -59,7 +59,7 @@ describe("identifyShadowedGlobals", () => {
     assertHasShadowedGlobals(
       `
       import a from 'a';
-      
+
       function foo(f: (a: number) => void) {
         console.log(a);
       }

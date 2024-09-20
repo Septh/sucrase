@@ -1,27 +1,27 @@
-import type CJSImportProcessor from "../CJSImportProcessor";
+import type {CJSImportProcessor} from "../CJSImportProcessor";
 import type {HelperManager} from "../HelperManager";
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import {IdentifierRole, isDeclaration, isObjectShorthandDeclaration} from "../parser/token";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import elideImportEquals from "../util/elideImportEquals";
-import getDeclarationInfo, {
+import type {TokenProcessor} from "../TokenProcessor";
+import {elideImportEquals} from "../util/elideImportEquals";
+import {getDeclarationInfo,
   type DeclarationInfo,
   EMPTY_DECLARATION_INFO,
 } from "../util/getDeclarationInfo";
-import getImportExportSpecifierInfo from "../util/getImportExportSpecifierInfo";
-import isExportFrom from "../util/isExportFrom";
+import {getImportExportSpecifierInfo} from "../util/getImportExportSpecifierInfo";
+import {isExportFrom} from "../util/isExportFrom";
 import {removeMaybeImportAttributes} from "../util/removeMaybeImportAttributes";
-import shouldElideDefaultExport from "../util/shouldElideDefaultExport";
-import type ReactHotLoaderTransformer from "./ReactHotLoaderTransformer";
-import type RootTransformer from "./RootTransformer";
+import {shouldElideDefaultExport} from "../util/shouldElideDefaultExport";
+import type {ReactHotLoaderTransformer} from "./ReactHotLoaderTransformer";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
 /**
  * Class for editing import statements when we are transforming to commonjs.
  */
-export default class CJSImportTransformer extends Transformer {
+export class CJSImportTransformer extends Transformer {
   private hadExport: boolean = false;
   private hadNamedExport: boolean = false;
   private hadDefaultExport: boolean = false;

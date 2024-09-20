@@ -1,9 +1,9 @@
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import type {Token} from "../parser/token";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import type RootTransformer from "../transformers/RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import type {RootTransformer} from "../transformers/RootTransformer";
 
 export interface ClassHeaderInfo {
   isExpression: boolean;
@@ -45,7 +45,7 @@ export interface ClassInfo {
  * Get information about the class fields for this class, given a token processor pointing to the
  * open-brace at the start of the class.
  */
-export default function getClassInfo(
+export function getClassInfo(
   rootTransformer: RootTransformer,
   tokens: TokenProcessor,
   nameManager: NameManager,

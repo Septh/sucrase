@@ -1,27 +1,27 @@
 import type {HelperManager} from "../HelperManager";
 import type {Options} from "../index";
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import elideImportEquals from "../util/elideImportEquals";
-import getDeclarationInfo, {
+import type {TokenProcessor} from "../TokenProcessor";
+import {elideImportEquals} from "../util/elideImportEquals";
+import {getDeclarationInfo,
   type DeclarationInfo,
   EMPTY_DECLARATION_INFO,
 } from "../util/getDeclarationInfo";
-import getImportExportSpecifierInfo from "../util/getImportExportSpecifierInfo";
+import {getImportExportSpecifierInfo} from "../util/getImportExportSpecifierInfo";
 import {getNonTypeIdentifiers} from "../util/getNonTypeIdentifiers";
-import isExportFrom from "../util/isExportFrom";
+import {isExportFrom} from "../util/isExportFrom";
 import {removeMaybeImportAttributes} from "../util/removeMaybeImportAttributes";
-import shouldElideDefaultExport from "../util/shouldElideDefaultExport";
-import type ReactHotLoaderTransformer from "./ReactHotLoaderTransformer";
+import {shouldElideDefaultExport} from "../util/shouldElideDefaultExport";
+import type {ReactHotLoaderTransformer} from "./ReactHotLoaderTransformer";
 import Transformer from "./Transformer";
 
 /**
  * Class for editing import statements when we are keeping the code as ESM. We still need to remove
  * type-only imports in TypeScript and Flow.
  */
-export default class ESMImportTransformer extends Transformer {
+export class ESMImportTransformer extends Transformer {
   private nonTypeIdentifiers: Set<string>;
   private declarationInfo: DeclarationInfo;
   private injectCreateRequireForImportRequire: boolean;

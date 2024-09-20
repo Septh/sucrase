@@ -1,6 +1,6 @@
 import {isTopLevelDeclaration} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 
 export interface DeclarationInfo {
   typeDeclarations: Set<string>;
@@ -23,7 +23,7 @@ export const EMPTY_DECLARATION_INFO: DeclarationInfo = {
  * - Imported identifiers should be preserved since we don't have enough information to
  *   rule them out. --isolatedModules disallows re-exports, which catches errors here.
  */
-export default function getDeclarationInfo(tokens: TokenProcessor): DeclarationInfo {
+export function getDeclarationInfo(tokens: TokenProcessor): DeclarationInfo {
   const typeDeclarations: Set<string> = new Set();
   const valueDeclarations: Set<string> = new Set();
   for (let i = 0; i < tokens.tokens.length; i++) {

@@ -1,12 +1,12 @@
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 
 /**
  * Starting at `export {`, look ahead and return `true` if this is an
  * `export {...} from` statement and `false` if this is a plain multi-export.
  */
-export default function isExportFrom(tokens: TokenProcessor): boolean {
+export function isExportFrom(tokens: TokenProcessor): boolean {
   let closeBraceIndex = tokens.currentIndex();
   while (!tokens.matches1AtIndex(closeBraceIndex, tt.braceR)) {
     closeBraceIndex++;

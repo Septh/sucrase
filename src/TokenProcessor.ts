@@ -2,7 +2,7 @@ import type {HelperManager} from "./HelperManager";
 import type {Token} from "./parser/token";
 import type {ContextualKeyword} from "./parser/keywords";
 import {type TokenType, TokenType as tt} from "./parser/generated/types";
-import isAsyncOperation from "./util/isAsyncOperation";
+import {isAsyncOperation} from "./util/isAsyncOperation";
 
 export interface TokenProcessorSnapshot {
   resultCode: string;
@@ -14,7 +14,7 @@ export interface TokenProcessorResult {
   mappings: Array<number | undefined>;
 }
 
-export default class TokenProcessor {
+export class TokenProcessor {
   private resultCode: string = "";
   // Array mapping input token index to optional string index position in the
   // output code.

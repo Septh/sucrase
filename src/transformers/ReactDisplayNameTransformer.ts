@@ -1,16 +1,16 @@
-import type CJSImportProcessor from "../CJSImportProcessor";
+import type {CJSImportProcessor} from "../CJSImportProcessor";
 import type {Options} from "../index";
 import {IdentifierRole} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import type RootTransformer from "./RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
 /**
  * Implementation of babel-plugin-transform-react-display-name, which adds a
  * display name to usages of React.createClass and createReactClass.
  */
-export default class ReactDisplayNameTransformer extends Transformer {
+export class ReactDisplayNameTransformer extends Transformer {
   constructor(
     readonly rootTransformer: RootTransformer,
     readonly tokens: TokenProcessor,

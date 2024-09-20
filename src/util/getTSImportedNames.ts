@@ -1,6 +1,6 @@
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import getImportExportSpecifierInfo from "./getImportExportSpecifierInfo";
+import type {TokenProcessor} from "../TokenProcessor";
+import {getImportExportSpecifierInfo} from "./getImportExportSpecifierInfo";
 
 /**
  * Special case code to scan for imported names in ESM TypeScript. We need to do this so we can
@@ -9,7 +9,7 @@ import getImportExportSpecifierInfo from "./getImportExportSpecifierInfo";
  * This is similar to logic in CJSImportProcessor, but trimmed down to avoid logic with CJS
  * replacement and flow type imports.
  */
-export default function getTSImportedNames(tokens: TokenProcessor): Set<string> {
+export function getTSImportedNames(tokens: TokenProcessor): Set<string> {
   const importedNames = new Set<string>();
   for (let i = 0; i < tokens.tokens.length; i++) {
     if (

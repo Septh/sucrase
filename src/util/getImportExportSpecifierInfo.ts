@@ -1,5 +1,5 @@
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 
 export type ImportExportSpecifierInfo =
   | {
@@ -38,7 +38,7 @@ export type ImportExportSpecifierInfo =
  * potentially be simplified and/or pushed to the call sites to avoid the object
  * allocation.
  */
-export default function getImportExportSpecifierInfo(
+export function getImportExportSpecifierInfo(
   tokens: TokenProcessor,
   index: number = tokens.currentIndex(),
 ): ImportExportSpecifierInfo {

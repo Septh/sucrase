@@ -40,7 +40,7 @@ export class StateSnapshot {
     ) { }
 }
 
-export default class State {
+export class State {
     // Used to signify the start of a potential arrow function
     potentialArrowAt: number = -1;
 

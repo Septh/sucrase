@@ -1,11 +1,11 @@
 import type {Token} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import isIdentifier from "../util/isIdentifier";
-import type RootTransformer from "./RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import {isIdentifier} from "../util/isIdentifier";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
-export default class TypeScriptTransformer extends Transformer {
+export class TypeScriptTransformer extends Transformer {
   constructor(
     readonly rootTransformer: RootTransformer,
     readonly tokens: TokenProcessor,

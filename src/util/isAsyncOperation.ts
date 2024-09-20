@@ -1,5 +1,5 @@
 import {ContextualKeyword} from "../parser/keywords";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 
 /**
  * Determine whether this optional chain or nullish coalescing operation has any await statements in
@@ -10,7 +10,7 @@ import type TokenProcessor from "../TokenProcessor";
  * chain/nullish operations need to be tracked but don't silence await, but a nested async function
  * (or any other nested scope) will make the await not count.
  */
-export default function isAsyncOperation(tokens: TokenProcessor): boolean {
+export function isAsyncOperation(tokens: TokenProcessor): boolean {
   let index = tokens.currentIndex();
   let depth = 0;
   const startToken = tokens.currentToken();

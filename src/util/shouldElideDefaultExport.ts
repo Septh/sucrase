@@ -1,11 +1,11 @@
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 import type {DeclarationInfo} from "./getDeclarationInfo";
 
 /**
  * Common method sharing code between CJS and ESM cases, since they're the same here.
  */
-export default function shouldElideDefaultExport(
+export function shouldElideDefaultExport(
   isTypeScriptTransformEnabled: boolean,
   keepUnusedImports: boolean,
   tokens: TokenProcessor,

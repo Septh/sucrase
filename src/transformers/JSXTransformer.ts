@@ -1,16 +1,16 @@
-import type CJSImportProcessor from "../CJSImportProcessor";
+import type {CJSImportProcessor} from "../CJSImportProcessor";
 import type {Options} from "../index";
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import XHTMLEntities from "../parser/plugins/jsx/xhtml";
 import {JSXRole} from "../parser/token";
 import {TokenType as tt} from "../parser/generated/types";
 import {charCodes} from "../parser/util";
-import type TokenProcessor from "../TokenProcessor";
-import getJSXPragmaInfo, {type JSXPragmaInfo} from "../util/getJSXPragmaInfo";
-import type RootTransformer from "./RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import {getJSXPragmaInfo, type JSXPragmaInfo} from "../util/getJSXPragmaInfo";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
-export default class JSXTransformer extends Transformer {
+export class JSXTransformer extends Transformer {
   jsxPragmaInfo: JSXPragmaInfo;
   jsxImportSource: string;
   isAutomaticRuntime: boolean;

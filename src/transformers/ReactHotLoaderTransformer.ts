@@ -1,8 +1,8 @@
 import {IdentifierRole, isTopLevelDeclaration} from "../parser/token";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 import Transformer from "./Transformer";
 
-export default class ReactHotLoaderTransformer extends Transformer {
+export class ReactHotLoaderTransformer extends Transformer {
   private extractedDefaultExportName: string | null = null;
 
   constructor(readonly tokens: TokenProcessor, readonly filePath: string) {

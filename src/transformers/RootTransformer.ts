@@ -1,22 +1,22 @@
 import type {HelperManager} from "../HelperManager";
 import type {Options, SucraseContext, Transform} from "../index";
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import getClassInfo, {type ClassInfo} from "../util/getClassInfo";
-import CJSImportTransformer from "./CJSImportTransformer";
-import ESMImportTransformer from "./ESMImportTransformer";
-import FlowTransformer from "./FlowTransformer";
-import JestHoistTransformer from "./JestHoistTransformer";
-import JSXTransformer from "./JSXTransformer";
-import NumericSeparatorTransformer from "./NumericSeparatorTransformer";
-import OptionalCatchBindingTransformer from "./OptionalCatchBindingTransformer";
-import OptionalChainingNullishTransformer from "./OptionalChainingNullishTransformer";
-import ReactDisplayNameTransformer from "./ReactDisplayNameTransformer";
-import ReactHotLoaderTransformer from "./ReactHotLoaderTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import {getClassInfo, type ClassInfo} from "../util/getClassInfo";
+import {CJSImportTransformer} from "./CJSImportTransformer";
+import {ESMImportTransformer} from "./ESMImportTransformer";
+import {FlowTransformer} from "./FlowTransformer";
+import {JestHoistTransformer} from "./JestHoistTransformer";
+import {JSXTransformer} from "./JSXTransformer";
+import {NumericSeparatorTransformer} from "./NumericSeparatorTransformer";
+import {OptionalCatchBindingTransformer} from "./OptionalCatchBindingTransformer";
+import {OptionalChainingNullishTransformer} from "./OptionalChainingNullishTransformer";
+import {ReactDisplayNameTransformer} from "./ReactDisplayNameTransformer";
+import {ReactHotLoaderTransformer} from "./ReactHotLoaderTransformer";
 import type Transformer from "./Transformer";
-import TypeScriptTransformer from "./TypeScriptTransformer";
+import {TypeScriptTransformer} from "./TypeScriptTransformer";
 
 export interface RootTransformerResult {
   code: string;
@@ -25,7 +25,7 @@ export interface RootTransformerResult {
   mappings: Array<number | undefined>;
 }
 
-export default class RootTransformer {
+export class RootTransformer {
   private transformers: Array<Transformer> = [];
   private nameManager: NameManager;
   private tokens: TokenProcessor;

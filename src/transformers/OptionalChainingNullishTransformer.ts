@@ -1,6 +1,6 @@
-import type NameManager from "../NameManager";
+import type {NameManager} from "../NameManager";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 import Transformer from "./Transformer";
 
 /**
@@ -12,7 +12,7 @@ import Transformer from "./Transformer";
  * The prefix and suffix code snippets are handled by TokenProcessor, and this transformer handles
  * the operators themselves.
  */
-export default class OptionalChainingNullishTransformer extends Transformer {
+export class OptionalChainingNullishTransformer extends Transformer {
   constructor(readonly tokens: TokenProcessor, readonly nameManager: NameManager) {
     super();
   }

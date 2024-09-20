@@ -1,7 +1,7 @@
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 
-export default function elideImportEquals(tokens: TokenProcessor): void {
+export function elideImportEquals(tokens: TokenProcessor): void {
   // import
   tokens.removeInitialToken();
   // name

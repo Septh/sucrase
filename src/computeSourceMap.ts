@@ -19,7 +19,7 @@ export interface RawSourceMap {
  * Generate a source map indicating that each line maps directly to the original line,
  * with the tokens in their new positions.
  */
-export default function computeSourceMap(
+export function computeSourceMap(
   {code: generatedCode, mappings: rawMappings}: RootTransformerResult,
   filePath: string,
   options: SourceMapOptions,

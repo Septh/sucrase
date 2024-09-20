@@ -1,10 +1,10 @@
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import type RootTransformer from "./RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
-export default class FlowTransformer extends Transformer {
+export class FlowTransformer extends Transformer {
   constructor(
     readonly rootTransformer: RootTransformer,
     readonly tokens: TokenProcessor,

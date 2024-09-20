@@ -69,7 +69,7 @@ import {
 import { ContextualKeyword } from './keywords'
 import { TokenType, formatTokenType, TokenType as tt } from "./generated/types"
 import { IS_IDENTIFIER_START, charCodes } from "./util"
-import State, { Scope, getNextContextId, input, isFlowEnabled, isJSXEnabled, isTypeScriptEnabled, nextContextId, state } from './state'
+import { State, Scope, getNextContextId, input, isFlowEnabled, isJSXEnabled, isTypeScriptEnabled, nextContextId, state } from './state'
 
 // #region util.ts -------------------------------------------------------------
 // Tests whether parsed token is a contextual keyword.

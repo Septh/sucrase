@@ -1,8 +1,8 @@
-import type CJSImportProcessor from "../CJSImportProcessor";
-import type NameManager from "../NameManager";
+import type {CJSImportProcessor} from "../CJSImportProcessor";
+import type {NameManager} from "../NameManager";
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
-import type RootTransformer from "./RootTransformer";
+import type {TokenProcessor} from "../TokenProcessor";
+import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
 const JEST_GLOBAL_NAME = "jest";
@@ -16,7 +16,7 @@ const HOISTED_METHODS = ["mock", "unmock", "enableAutomock", "disableAutomock"];
  * wrap each invocation in a function statement and then call the function from
  * the top of the file.
  */
-export default class JestHoistTransformer extends Transformer {
+export class JestHoistTransformer extends Transformer {
   private readonly hoistedFunctionNames: Array<string> = [];
 
   constructor(

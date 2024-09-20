@@ -65,7 +65,7 @@ const RESERVED_WORDS = new Set([
  * variable name, it might be referenced later in the enum, so we need to
  * declare a variable.
  */
-export default function isIdentifier(name: string): boolean {
+export function isIdentifier(name: string): boolean {
   if (name.length === 0) {
     return false;
   }

@@ -7,7 +7,7 @@ export interface JSXPragmaInfo {
   fragmentSuffix: string;
 }
 
-export default function getJSXPragmaInfo(options: Options): JSXPragmaInfo {
+export function getJSXPragmaInfo(options: Options): JSXPragmaInfo {
   const [base, suffix] = splitPragma(options.jsxPragma || "React.createElement");
   const [fragmentBase, fragmentSuffix] = splitPragma(options.jsxFragmentPragma || "React.Fragment");
   return {base, suffix, fragmentBase, fragmentSuffix};

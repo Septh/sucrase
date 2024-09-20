@@ -1,7 +1,7 @@
 import type {Token} from "./parser/token";
-import getIdentifierNames from "./util/getIdentifierNames";
+import {getIdentifierNames} from "./util/getIdentifierNames";
 
-export default class NameManager {
+export class NameManager {
   private readonly usedNames: Set<string> = new Set();
 
   constructor(code: string, tokens: Array<Token>) {

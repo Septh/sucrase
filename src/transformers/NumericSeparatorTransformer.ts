@@ -1,8 +1,8 @@
 import {TokenType as tt} from "../parser/generated/types";
-import type TokenProcessor from "../TokenProcessor";
+import type {TokenProcessor} from "../TokenProcessor";
 import Transformer from "./Transformer";
 
-export default class NumericSeparatorTransformer extends Transformer {
+export class NumericSeparatorTransformer extends Transformer {
   constructor(readonly tokens: TokenProcessor) {
     super();
   }

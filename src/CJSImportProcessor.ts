@@ -1,11 +1,11 @@
 import type {HelperManager} from "./HelperManager";
 import type {Options} from "./index";
-import type NameManager from "./NameManager";
+import type {NameManager} from "./NameManager";
 import {isDeclaration} from "./parser/token";
 import {ContextualKeyword} from "./parser/keywords";
 import {TokenType as tt} from "./parser/generated/types";
-import type TokenProcessor from "./TokenProcessor";
-import getImportExportSpecifierInfo from "./util/getImportExportSpecifierInfo";
+import type {TokenProcessor} from "./TokenProcessor";
+import {getImportExportSpecifierInfo} from "./util/getImportExportSpecifierInfo";
 import {getNonTypeIdentifiers} from "./util/getNonTypeIdentifiers";
 
 interface NamedImport {
@@ -30,7 +30,7 @@ interface ImportInfo {
  * TypeScript uses a simpler mechanism that does not use functions like interopRequireDefault and
  * interopRequireWildcard, so we also allow that mode for compatibility.
  */
-export default class CJSImportProcessor {
+export class CJSImportProcessor {
   private nonTypeIdentifiers: Set<string> = new Set();
   private importInfoByPath: Map<string, ImportInfo> = new Map();
   private importsToReplace: Map<string, string> = new Map();

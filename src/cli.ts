@@ -16,7 +16,7 @@ interface CLIOptions {
   sucraseOptions: Options;
 }
 
-export default function run(): void {
+export function run(): void {
   commander
     .description(`Sucrase: super-fast Babel alternative.`)
     .usage("[options] <srcDir>")

@@ -5,13 +5,13 @@ import {
 } from "./parser/token";
 import type {Scope} from "./parser/state";
 import {TokenType as tt} from "./parser/generated/types";
-import type TokenProcessor from "./TokenProcessor";
+import type {TokenProcessor} from "./TokenProcessor";
 
 /**
  * Traverse the given tokens and modify them if necessary to indicate that some names shadow global
  * variables.
  */
-export default function identifyShadowedGlobals(
+export function identifyShadowedGlobals(
   tokens: TokenProcessor,
   scopes: Array<Scope>,
   globalNames: Set<string>,

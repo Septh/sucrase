@@ -1,16 +1,16 @@
-import CJSImportProcessor from "./CJSImportProcessor";
-import computeSourceMap, {type RawSourceMap} from "./computeSourceMap";
+import {CJSImportProcessor} from "./CJSImportProcessor";
+import {computeSourceMap, type RawSourceMap} from "./computeSourceMap";
 import {HelperManager} from "./HelperManager";
-import identifyShadowedGlobals from "./identifyShadowedGlobals";
-import NameManager from "./NameManager";
+import {identifyShadowedGlobals} from "./identifyShadowedGlobals";
+import {NameManager} from "./NameManager";
 import {validateOptions} from "./Options";
 import type {Options, SourceMapOptions, Transform} from "./Options";
 import {parse} from "./parser";
 import type {Scope} from "./parser/state";
-import TokenProcessor from "./TokenProcessor";
-import RootTransformer from "./transformers/RootTransformer";
-import formatTokens from "./util/formatTokens";
-import getTSImportedNames from "./util/getTSImportedNames";
+import {TokenProcessor} from "./TokenProcessor";
+import {RootTransformer} from "./transformers/RootTransformer";
+import {formatTokens} from "./util/formatTokens";
+import {getTSImportedNames} from "./util/getTSImportedNames";
 
 export interface TransformResult {
   code: string;

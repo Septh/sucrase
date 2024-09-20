@@ -1,4 +1,4 @@
-import type NameManager from "./NameManager";
+import type {NameManager} from "./NameManager";
 
 const HELPERS: {[name: string]: string} = {
   require: `
