@@ -5,7 +5,7 @@ import { unexpected } from "./traverser"
 import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, charCodes, skipWhiteSpace } from "./util"
 import { input, isFlowEnabled, state } from './state'
 
-export enum IdentifierRole {
+export const enum IdentifierRole {
     Access,
     ExportAccess,
     TopLevelDeclaration,
@@ -27,7 +27,7 @@ export enum IdentifierRole {
  * Extra information on jsxTagStart tokens, used to determine which of the three
  * jsx functions are called in the automatic transform.
  */
-export enum JSXRole {
+export const enum JSXRole {
     // The element is self-closing or has a body that resolves to empty. We
     // shouldn't emit children at all in this case.
     NoChildren,
@@ -41,64 +41,6 @@ export enum JSXRole {
     // The element has a prop named "key" after a prop spread, so we should fall
     // back to the createElement function.
     KeyAfterPropSpread,
-}
-
-export function isDeclaration(token: Token): boolean {
-    const role = token.identifierRole
-    return (
-        role === IdentifierRole.TopLevelDeclaration ||
-        role === IdentifierRole.FunctionScopedDeclaration ||
-        role === IdentifierRole.BlockScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
-        role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
-    )
-}
-
-export function isNonTopLevelDeclaration(token: Token): boolean {
-    const role = token.identifierRole
-    return (
-        role === IdentifierRole.FunctionScopedDeclaration ||
-        role === IdentifierRole.BlockScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
-    )
-}
-
-export function isTopLevelDeclaration(token: Token): boolean {
-    const role = token.identifierRole
-    return (
-        role === IdentifierRole.TopLevelDeclaration ||
-        role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
-        role === IdentifierRole.ImportDeclaration
-    )
-}
-
-export function isBlockScopedDeclaration(token: Token): boolean {
-    const role = token.identifierRole
-    // Treat top-level declarations as block scope since the distinction doesn't matter here.
-    return (
-        role === IdentifierRole.TopLevelDeclaration ||
-        role === IdentifierRole.BlockScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
-        role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
-    )
-}
-
-export function isFunctionScopedDeclaration(token: Token): boolean {
-    const role = token.identifierRole
-    return (
-        role === IdentifierRole.FunctionScopedDeclaration ||
-        role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration
-    )
-}
-
-export function isObjectShorthandDeclaration(token: Token): boolean {
-    return (
-        token.identifierRole === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
-        token.identifierRole === IdentifierRole.ObjectShorthandBlockScopedDeclaration ||
-        token.identifierRole === IdentifierRole.ObjectShorthandFunctionScopedDeclaration
-    )
 }
 
 // Object type used to represent tokens. Note that normally, tokens
@@ -159,7 +101,66 @@ export class Token {
     subscriptStartIndex: number | null
     // Tag for `??` operators to denote the root token for this nullish coalescing call.
     nullishStartIndex: number | null
-}
+
+
+    isDeclaration(): boolean {
+        const role = this.identifierRole
+        return (
+            role === IdentifierRole.TopLevelDeclaration ||
+            role === IdentifierRole.FunctionScopedDeclaration ||
+            role === IdentifierRole.BlockScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
+            role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
+        )
+    }
+    
+    isNonTopLevelDeclaration(): boolean {
+        const role = this.identifierRole
+        return (
+            role === IdentifierRole.FunctionScopedDeclaration ||
+            role === IdentifierRole.BlockScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
+        )
+    }
+    
+    isTopLevelDeclaration(): boolean {
+        const role = this.identifierRole
+        return (
+            role === IdentifierRole.TopLevelDeclaration ||
+            role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
+            role === IdentifierRole.ImportDeclaration
+        )
+    }
+    
+    isBlockScopedDeclaration(): boolean {
+        const role = this.identifierRole
+        // Treat top-level declarations as block scope since the distinction doesn't matter here.
+        return (
+            role === IdentifierRole.TopLevelDeclaration ||
+            role === IdentifierRole.BlockScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
+            role === IdentifierRole.ObjectShorthandBlockScopedDeclaration
+        )
+    }
+    
+    isFunctionScopedDeclaration(): boolean {
+        const role = this.identifierRole
+        return (
+            role === IdentifierRole.FunctionScopedDeclaration ||
+            role === IdentifierRole.ObjectShorthandFunctionScopedDeclaration
+        )
+    }
+    
+    isObjectShorthandDeclaration(): boolean {
+        return (
+            this.identifierRole === IdentifierRole.ObjectShorthandTopLevelDeclaration ||
+            this.identifierRole === IdentifierRole.ObjectShorthandBlockScopedDeclaration ||
+            this.identifierRole === IdentifierRole.ObjectShorthandFunctionScopedDeclaration
+        )
+    }
+}    
 
 // ## Tokenizer
 

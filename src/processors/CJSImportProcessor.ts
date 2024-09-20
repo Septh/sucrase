@@ -1,26 +1,25 @@
-import type {HelperManager} from "../managers/HelperManager";
-import type {Options} from "../index";
-import type {NameManager} from "../managers/NameManager";
-import {isDeclaration} from "../parser/token";
-import {ContextualKeyword} from "../parser/keywords";
-import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "./TokenProcessor";
-import {getImportExportSpecifierInfo} from "../util/getImportExportSpecifierInfo";
-import {getNonTypeIdentifiers} from "../util/getNonTypeIdentifiers";
+import type { HelperManager } from "../managers/HelperManager"
+import type { Options } from "../index"
+import type { NameManager } from "../managers/NameManager"
+import { ContextualKeyword } from "../parser/keywords"
+import { TokenType as tt } from "../parser/generated/types"
+import type { TokenProcessor } from "./TokenProcessor"
+import { getImportExportSpecifierInfo } from "../util/getImportExportSpecifierInfo"
+import { getNonTypeIdentifiers } from "../util/getNonTypeIdentifiers"
 
 interface NamedImport {
-  importedName: string;
-  localName: string;
+  importedName: string
+  localName: string
 }
 
 interface ImportInfo {
-  defaultNames: Array<string>;
-  wildcardNames: Array<string>;
-  namedImports: Array<NamedImport>;
-  namedExports: Array<NamedImport>;
-  hasBareImport: boolean;
-  exportStarNames: Array<string>;
-  hasStarExport: boolean;
+  defaultNames: Array<string>
+  wildcardNames: Array<string>
+  namedImports: Array<NamedImport>
+  namedExports: Array<NamedImport>
+  hasBareImport: boolean
+  exportStarNames: Array<string>
+  hasStarExport: boolean
 }
 
 /**
@@ -45,7 +44,7 @@ export class CJSImportProcessor {
     readonly isTypeScriptTransformEnabled: boolean,
     readonly keepUnusedImports: boolean,
     readonly helperManager: HelperManager,
-  ) {}
+  ) { }
 
   preprocessTokens(): void {
     for (let i = 0; i < this.tokens.tokens.length; i++) {
@@ -53,16 +52,16 @@ export class CJSImportProcessor {
         this.tokens.matches1AtIndex(i, tt._import) &&
         !this.tokens.matches3AtIndex(i, tt._import, tt.name, tt.eq)
       ) {
-        this.preprocessImportAtIndex(i);
+        this.preprocessImportAtIndex(i)
       }
       if (
         this.tokens.matches1AtIndex(i, tt._export) &&
         !this.tokens.matches2AtIndex(i, tt._export, tt.eq)
       ) {
-        this.preprocessExportAtIndex(i);
+        this.preprocessExportAtIndex(i)
       }
     }
-    this.generateImportReplacements();
+    this.generateImportReplacements()
   }
 
   /**
@@ -70,7 +69,7 @@ export class CJSImportProcessor {
    * This includes `import {} from 'foo';`, but not `import 'foo';`.
    */
   pruneTypeOnlyImports(): void {
-    this.nonTypeIdentifiers = getNonTypeIdentifiers(this.tokens, this.options);
+    this.nonTypeIdentifiers = getNonTypeIdentifiers(this.tokens, this.options)
     for (const [path, importInfo] of this.importInfoByPath.entries()) {
       if (
         importInfo.hasBareImport ||
@@ -78,15 +77,15 @@ export class CJSImportProcessor {
         importInfo.exportStarNames.length > 0 ||
         importInfo.namedExports.length > 0
       ) {
-        continue;
+        continue
       }
       const names = [
         ...importInfo.defaultNames,
         ...importInfo.wildcardNames,
-        ...importInfo.namedImports.map(({localName}) => localName),
-      ];
+        ...importInfo.namedImports.map(({ localName }) => localName),
+      ]
       if (names.every((name) => this.shouldAutomaticallyElideImportedName(name))) {
-        this.importsToReplace.set(path, "");
+        this.importsToReplace.set(path, "")
       }
     }
   }
@@ -96,7 +95,7 @@ export class CJSImportProcessor {
       this.isTypeScriptTransformEnabled &&
       !this.keepUnusedImports &&
       !this.nonTypeIdentifiers.has(name)
-    );
+    )
   }
 
   private generateImportReplacements(): void {
@@ -108,7 +107,7 @@ export class CJSImportProcessor {
         namedExports,
         exportStarNames,
         hasStarExport,
-      } = importInfo;
+      } = importInfo
 
       if (
         defaultNames.length === 0 &&
@@ -119,74 +118,74 @@ export class CJSImportProcessor {
         !hasStarExport
       ) {
         // Import is never used, so don't even assign a name.
-        this.importsToReplace.set(path, `require('${path}');`);
-        continue;
+        this.importsToReplace.set(path, `require('${path}');`)
+        continue
       }
 
-      const primaryImportName = this.getFreeIdentifierForPath(path);
-      let secondaryImportName;
+      const primaryImportName = this.getFreeIdentifierForPath(path)
+      let secondaryImportName
       if (this.enableLegacyTypeScriptModuleInterop) {
-        secondaryImportName = primaryImportName;
+        secondaryImportName = primaryImportName
       } else {
         secondaryImportName =
-          wildcardNames.length > 0 ? wildcardNames[0] : this.getFreeIdentifierForPath(path);
+          wildcardNames.length > 0 ? wildcardNames[0] : this.getFreeIdentifierForPath(path)
       }
-      let requireCode = `var ${primaryImportName} = require('${path}');`;
+      let requireCode = `var ${primaryImportName} = require('${path}');`
       if (wildcardNames.length > 0) {
         for (const wildcardName of wildcardNames) {
           const moduleExpr = this.enableLegacyTypeScriptModuleInterop
             ? primaryImportName
-            : `${this.helperManager.getHelperName("interopRequireWildcard")}(${primaryImportName})`;
-          requireCode += ` var ${wildcardName} = ${moduleExpr};`;
+            : `${this.helperManager.getHelperName("interopRequireWildcard")}(${primaryImportName})`
+          requireCode += ` var ${wildcardName} = ${moduleExpr};`
         }
       } else if (exportStarNames.length > 0 && secondaryImportName !== primaryImportName) {
         requireCode += ` var ${secondaryImportName} = ${this.helperManager.getHelperName(
           "interopRequireWildcard",
-        )}(${primaryImportName});`;
+        )}(${primaryImportName});`
       } else if (defaultNames.length > 0 && secondaryImportName !== primaryImportName) {
         requireCode += ` var ${secondaryImportName} = ${this.helperManager.getHelperName(
           "interopRequireDefault",
-        )}(${primaryImportName});`;
+        )}(${primaryImportName});`
       }
 
-      for (const {importedName, localName} of namedExports) {
+      for (const { importedName, localName } of namedExports) {
         requireCode += ` ${this.helperManager.getHelperName(
           "createNamedExportFrom",
-        )}(${primaryImportName}, '${localName}', '${importedName}');`;
+        )}(${primaryImportName}, '${localName}', '${importedName}');`
       }
       for (const exportStarName of exportStarNames) {
-        requireCode += ` exports.${exportStarName} = ${secondaryImportName};`;
+        requireCode += ` exports.${exportStarName} = ${secondaryImportName};`
       }
       if (hasStarExport) {
         requireCode += ` ${this.helperManager.getHelperName(
           "createStarExport",
-        )}(${primaryImportName});`;
+        )}(${primaryImportName});`
       }
 
-      this.importsToReplace.set(path, requireCode);
+      this.importsToReplace.set(path, requireCode)
 
       for (const defaultName of defaultNames) {
-        this.identifierReplacements.set(defaultName, `${secondaryImportName}.default`);
+        this.identifierReplacements.set(defaultName, `${secondaryImportName}.default`)
       }
-      for (const {importedName, localName} of namedImports) {
-        this.identifierReplacements.set(localName, `${primaryImportName}.${importedName}`);
+      for (const { importedName, localName } of namedImports) {
+        this.identifierReplacements.set(localName, `${primaryImportName}.${importedName}`)
       }
     }
   }
 
   getFreeIdentifierForPath(path: string): string {
-    const components = path.split("/");
-    const lastComponent = components[components.length - 1];
-    const baseName = lastComponent.replace(/\W/g, "");
-    return this.nameManager.claimFreeName(`_${baseName}`);
+    const components = path.split("/")
+    const lastComponent = components[components.length - 1]
+    const baseName = lastComponent.replace(/\W/g, "")
+    return this.nameManager.claimFreeName(`_${baseName}`)
   }
 
   private preprocessImportAtIndex(index: number): void {
-    const defaultNames: Array<string> = [];
-    const wildcardNames: Array<string> = [];
-    const namedImports: Array<NamedImport> = [];
+    const defaultNames: Array<string> = []
+    const wildcardNames: Array<string> = []
+    const namedImports: Array<NamedImport> = []
 
-    index++;
+    index++
     if (
       (this.tokens.matchesContextualAtIndex(index, ContextualKeyword._type) ||
         this.tokens.matches1AtIndex(index, tt._typeof)) &&
@@ -194,57 +193,57 @@ export class CJSImportProcessor {
       !this.tokens.matchesContextualAtIndex(index + 1, ContextualKeyword._from)
     ) {
       // import type declaration, so no need to process anything.
-      return;
+      return
     }
 
     if (this.tokens.matches1AtIndex(index, tt.parenL)) {
       // Dynamic import, so nothing to do
-      return;
+      return
     }
 
     if (this.tokens.matches1AtIndex(index, tt.name)) {
-      defaultNames.push(this.tokens.identifierNameAtIndex(index));
-      index++;
+      defaultNames.push(this.tokens.identifierNameAtIndex(index))
+      index++
       if (this.tokens.matches1AtIndex(index, tt.comma)) {
-        index++;
+        index++
       }
     }
 
     if (this.tokens.matches1AtIndex(index, tt.star)) {
       // * as
-      index += 2;
-      wildcardNames.push(this.tokens.identifierNameAtIndex(index));
-      index++;
+      index += 2
+      wildcardNames.push(this.tokens.identifierNameAtIndex(index))
+      index++
     }
 
     if (this.tokens.matches1AtIndex(index, tt.braceL)) {
-      const result = this.getNamedImports(index + 1);
-      index = result.newIndex;
+      const result = this.getNamedImports(index + 1)
+      index = result.newIndex
 
       for (const namedImport of result.namedImports) {
         // Treat {default as X} as a default import to ensure usage of require interop helper
         if (namedImport.importedName === "default") {
-          defaultNames.push(namedImport.localName);
+          defaultNames.push(namedImport.localName)
         } else {
-          namedImports.push(namedImport);
+          namedImports.push(namedImport)
         }
       }
     }
 
     if (this.tokens.matchesContextualAtIndex(index, ContextualKeyword._from)) {
-      index++;
+      index++
     }
 
     if (!this.tokens.matches1AtIndex(index, tt.string)) {
-      throw new Error("Expected string token at the end of import statement.");
+      throw new Error("Expected string token at the end of import statement.")
     }
-    const path = this.tokens.stringValueAtIndex(index);
-    const importInfo = this.getImportInfo(path);
-    importInfo.defaultNames.push(...defaultNames);
-    importInfo.wildcardNames.push(...wildcardNames);
-    importInfo.namedImports.push(...namedImports);
+    const path = this.tokens.stringValueAtIndex(index)
+    const importInfo = this.getImportInfo(path)
+    importInfo.defaultNames.push(...defaultNames)
+    importInfo.wildcardNames.push(...wildcardNames)
+    importInfo.namedImports.push(...namedImports)
     if (defaultNames.length === 0 && wildcardNames.length === 0 && namedImports.length === 0) {
-      importInfo.hasBareImport = true;
+      importInfo.hasBareImport = true
     }
   }
 
@@ -254,25 +253,25 @@ export class CJSImportProcessor {
       this.tokens.matches2AtIndex(index, tt._export, tt._let) ||
       this.tokens.matches2AtIndex(index, tt._export, tt._const)
     ) {
-      this.preprocessVarExportAtIndex(index);
+      this.preprocessVarExportAtIndex(index)
     } else if (
       this.tokens.matches2AtIndex(index, tt._export, tt._function) ||
       this.tokens.matches2AtIndex(index, tt._export, tt._class)
     ) {
-      const exportName = this.tokens.identifierNameAtIndex(index + 2);
-      this.addExportBinding(exportName, exportName);
+      const exportName = this.tokens.identifierNameAtIndex(index + 2)
+      this.addExportBinding(exportName, exportName)
     } else if (this.tokens.matches3AtIndex(index, tt._export, tt.name, tt._function)) {
-      const exportName = this.tokens.identifierNameAtIndex(index + 3);
-      this.addExportBinding(exportName, exportName);
+      const exportName = this.tokens.identifierNameAtIndex(index + 3)
+      this.addExportBinding(exportName, exportName)
     } else if (this.tokens.matches2AtIndex(index, tt._export, tt.braceL)) {
-      this.preprocessNamedExportAtIndex(index);
+      this.preprocessNamedExportAtIndex(index)
     } else if (this.tokens.matches2AtIndex(index, tt._export, tt.star)) {
-      this.preprocessExportStarAtIndex(index);
+      this.preprocessExportStarAtIndex(index)
     }
   }
 
   private preprocessVarExportAtIndex(index: number): void {
-    let depth = 0;
+    let depth = 0
     // Handle cases like `export let {x} = y;`, starting at the open-brace in that case.
     for (let i = index + 2; ; i++) {
       if (
@@ -280,25 +279,25 @@ export class CJSImportProcessor {
         this.tokens.matches1AtIndex(i, tt.dollarBraceL) ||
         this.tokens.matches1AtIndex(i, tt.bracketL)
       ) {
-        depth++;
+        depth++
       } else if (
         this.tokens.matches1AtIndex(i, tt.braceR) ||
         this.tokens.matches1AtIndex(i, tt.bracketR)
       ) {
-        depth--;
+        depth--
       } else if (depth === 0 && !this.tokens.matches1AtIndex(i, tt.name)) {
-        break;
+        break
       } else if (this.tokens.matches1AtIndex(1, tt.eq)) {
-        const endIndex = this.tokens.currentToken().rhsEndIndex;
+        const endIndex = this.tokens.currentToken().rhsEndIndex
         if (endIndex == null) {
-          throw new Error("Expected = token with an end index.");
+          throw new Error("Expected = token with an end index.")
         }
-        i = endIndex - 1;
+        i = endIndex - 1
       } else {
-        const token = this.tokens.tokens[i];
-        if (isDeclaration(token)) {
-          const exportName = this.tokens.identifierNameAtIndex(i);
-          this.identifierReplacements.set(exportName, `exports.${exportName}`);
+        const token = this.tokens.tokens[i]
+        if (token.isDeclaration()) {
+          const exportName = this.tokens.identifierNameAtIndex(i)
+          this.identifierReplacements.set(exportName, `exports.${exportName}`)
         }
       }
     }
@@ -311,82 +310,82 @@ export class CJSImportProcessor {
    */
   private preprocessNamedExportAtIndex(index: number): void {
     // export {
-    index += 2;
-    const {newIndex, namedImports} = this.getNamedImports(index);
-    index = newIndex;
+    index += 2
+    const { newIndex, namedImports } = this.getNamedImports(index)
+    index = newIndex
 
     if (this.tokens.matchesContextualAtIndex(index, ContextualKeyword._from)) {
-      index++;
+      index++
     } else {
       // Reinterpret "a as b" to be local/exported rather than imported/local.
-      for (const {importedName: localName, localName: exportedName} of namedImports) {
-        this.addExportBinding(localName, exportedName);
+      for (const { importedName: localName, localName: exportedName } of namedImports) {
+        this.addExportBinding(localName, exportedName)
       }
-      return;
+      return
     }
 
     if (!this.tokens.matches1AtIndex(index, tt.string)) {
-      throw new Error("Expected string token at the end of import statement.");
+      throw new Error("Expected string token at the end of import statement.")
     }
-    const path = this.tokens.stringValueAtIndex(index);
-    const importInfo = this.getImportInfo(path);
-    importInfo.namedExports.push(...namedImports);
+    const path = this.tokens.stringValueAtIndex(index)
+    const importInfo = this.getImportInfo(path)
+    importInfo.namedExports.push(...namedImports)
   }
 
   private preprocessExportStarAtIndex(index: number): void {
-    let exportedName = null;
+    let exportedName = null
     if (this.tokens.matches3AtIndex(index, tt._export, tt.star, tt._as)) {
       // export * as
-      index += 3;
-      exportedName = this.tokens.identifierNameAtIndex(index);
+      index += 3
+      exportedName = this.tokens.identifierNameAtIndex(index)
       // foo from
-      index += 2;
+      index += 2
     } else {
       // export * from
-      index += 3;
+      index += 3
     }
     if (!this.tokens.matches1AtIndex(index, tt.string)) {
-      throw new Error("Expected string token at the end of star export statement.");
+      throw new Error("Expected string token at the end of star export statement.")
     }
-    const path = this.tokens.stringValueAtIndex(index);
-    const importInfo = this.getImportInfo(path);
+    const path = this.tokens.stringValueAtIndex(index)
+    const importInfo = this.getImportInfo(path)
     if (exportedName !== null) {
-      importInfo.exportStarNames.push(exportedName);
+      importInfo.exportStarNames.push(exportedName)
     } else {
-      importInfo.hasStarExport = true;
+      importInfo.hasStarExport = true
     }
   }
 
-  private getNamedImports(index: number): {newIndex: number; namedImports: Array<NamedImport>} {
-    const namedImports = [];
+  private getNamedImports(index: number): { newIndex: number; namedImports: Array<NamedImport> } {
+    const namedImports = []
     while (true) {
       if (this.tokens.matches1AtIndex(index, tt.braceR)) {
-        index++;
-        break;
+        index++
+        break
       }
 
-      const specifierInfo = getImportExportSpecifierInfo(this.tokens, index);
-      index = specifierInfo.endIndex;
+      const specifierInfo = getImportExportSpecifierInfo(this.tokens, index)
+      index = specifierInfo.endIndex
       if (!specifierInfo.isType) {
         namedImports.push({
           importedName: specifierInfo.leftName,
           localName: specifierInfo.rightName,
-        });
+        })
       }
 
       if (this.tokens.matches2AtIndex(index, tt.comma, tt.braceR)) {
-        index += 2;
-        break;
+        index += 2
+        break
       } else if (this.tokens.matches1AtIndex(index, tt.braceR)) {
-        index++;
-        break;
+        index++
+        break
       } else if (this.tokens.matches1AtIndex(index, tt.comma)) {
-        index++;
+        index++
       } else {
-        throw new Error(`Unexpected token: ${JSON.stringify(this.tokens.tokens[index])}`);
+        throw new Error(`Unexpected token: ${JSON.stringify(this.tokens.tokens[index])}`)
       }
     }
-    return {newIndex: index, namedImports};
+    return { newIndex: index, namedImports }
   }
 
   /**
@@ -394,9 +393,9 @@ export class CJSImportProcessor {
    * exist yet.
    */
   private getImportInfo(path: string): ImportInfo {
-    const existingInfo = this.importInfoByPath.get(path);
+    const existingInfo = this.importInfoByPath.get(path)
     if (existingInfo) {
-      return existingInfo;
+      return existingInfo
     }
     const newInfo = {
       defaultNames: [],
@@ -406,16 +405,16 @@ export class CJSImportProcessor {
       hasBareImport: false,
       exportStarNames: [],
       hasStarExport: false,
-    };
-    this.importInfoByPath.set(path, newInfo);
-    return newInfo;
+    }
+    this.importInfoByPath.set(path, newInfo)
+    return newInfo
   }
 
   private addExportBinding(localName: string, exportedName: string): void {
     if (!this.exportBindingsByLocalName.has(localName)) {
-      this.exportBindingsByLocalName.set(localName, []);
+      this.exportBindingsByLocalName.set(localName, [])
     }
-    this.exportBindingsByLocalName.get(localName)!.push(exportedName);
+    this.exportBindingsByLocalName.get(localName)!.push(exportedName)
   }
 
   /**
@@ -423,24 +422,24 @@ export class CJSImportProcessor {
    * the code has already been "claimed" by a previous import.
    */
   claimImportCode(importPath: string): string {
-    const result = this.importsToReplace.get(importPath);
-    this.importsToReplace.set(importPath, "");
-    return result || "";
+    const result = this.importsToReplace.get(importPath)
+    this.importsToReplace.set(importPath, "")
+    return result || ""
   }
 
   getIdentifierReplacement(identifierName: string): string | null {
-    return this.identifierReplacements.get(identifierName) || null;
+    return this.identifierReplacements.get(identifierName) || null
   }
 
   /**
    * Return a string like `exports.foo = exports.bar`.
    */
   resolveExportBinding(assignedName: string): string | null {
-    const exportedNames = this.exportBindingsByLocalName.get(assignedName);
+    const exportedNames = this.exportBindingsByLocalName.get(assignedName)
     if (!exportedNames || exportedNames.length === 0) {
-      return null;
+      return null
     }
-    return exportedNames.map((exportedName) => `exports.${exportedName}`).join(" = ");
+    return exportedNames.map((exportedName) => `exports.${exportedName}`).join(" = ")
   }
 
   /**
@@ -451,6 +450,6 @@ export class CJSImportProcessor {
     return new Set([
       ...this.identifierReplacements.keys(),
       ...this.exportBindingsByLocalName.keys(),
-    ]);
+    ])
   }
 }

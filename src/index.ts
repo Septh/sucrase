@@ -11,6 +11,8 @@ import { RootTransformer } from "./transformers/RootTransformer"
 import { formatTokens } from "./util/formatTokens"
 import { getTSImportedNames } from "./util/getTSImportedNames"
 
+export type { Options, SourceMapOptions, Transform }
+
 export interface TransformResult {
   code: string
   sourceMap?: RawSourceMap
@@ -23,8 +25,6 @@ export interface SucraseContext {
   importProcessor: CJSImportProcessor | null
   helperManager: HelperManager
 }
-
-export type { Options, SourceMapOptions, Transform }
 
 export function getVersion(): string {
   /* istanbul ignore next */

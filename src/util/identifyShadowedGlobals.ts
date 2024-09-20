@@ -1,11 +1,6 @@
-import {
-  isBlockScopedDeclaration,
-  isFunctionScopedDeclaration,
-  isNonTopLevelDeclaration,
-} from "../parser/token";
-import type {Scope} from "../parser/state";
-import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../processors/TokenProcessor";
+import type { Scope } from "../parser/state"
+import { TokenType as tt } from "../parser/generated/types"
+import type { TokenProcessor } from "../processors/TokenProcessor"
 
 /**
  * Traverse the given tokens and modify them if necessary to indicate that some names shadow global
@@ -17,9 +12,9 @@ export function identifyShadowedGlobals(
   globalNames: Set<string>,
 ): void {
   if (!hasShadowedGlobals(tokens, globalNames)) {
-    return;
+    return
   }
-  markShadowedGlobals(tokens, scopes, globalNames);
+  markShadowedGlobals(tokens, scopes, globalNames)
 }
 
 /**
@@ -32,13 +27,13 @@ export function hasShadowedGlobals(tokens: TokenProcessor, globalNames: Set<stri
     if (
       token.type === tt.name &&
       !token.isType &&
-      isNonTopLevelDeclaration(token) &&
+      token.isNonTopLevelDeclaration() &&
       globalNames.has(tokens.identifierNameForToken(token))
     ) {
-      return true;
+      return true
     }
   }
-  return false;
+  return false
 }
 
 function markShadowedGlobals(
@@ -46,53 +41,53 @@ function markShadowedGlobals(
   scopes: Array<Scope>,
   globalNames: Set<string>,
 ): void {
-  const scopeStack = [];
-  let scopeIndex = scopes.length - 1;
+  const scopeStack = []
+  let scopeIndex = scopes.length - 1
   // Scopes were generated at completion time, so they're sorted by end index, so we can maintain a
   // good stack by going backwards through them.
   for (let i = tokens.tokens.length - 1; ; i--) {
     while (scopeStack.length > 0 && scopeStack[scopeStack.length - 1].startTokenIndex === i + 1) {
-      scopeStack.pop();
+      scopeStack.pop()
     }
     while (scopeIndex >= 0 && scopes[scopeIndex].endTokenIndex === i + 1) {
-      scopeStack.push(scopes[scopeIndex]);
-      scopeIndex--;
+      scopeStack.push(scopes[scopeIndex])
+      scopeIndex--
     }
     // Process scopes after the last iteration so we can make sure we pop all of them.
     if (i < 0) {
-      break;
+      break
     }
 
-    const token = tokens.tokens[i];
-    const name = tokens.identifierNameForToken(token);
+    const token = tokens.tokens[i]
+    const name = tokens.identifierNameForToken(token)
     if (scopeStack.length > 1 && !token.isType && token.type === tt.name && globalNames.has(name)) {
-      if (isBlockScopedDeclaration(token)) {
-        markShadowedForScope(scopeStack[scopeStack.length - 1], tokens, name);
-      } else if (isFunctionScopedDeclaration(token)) {
-        let stackIndex = scopeStack.length - 1;
+      if (token.isBlockScopedDeclaration()) {
+        markShadowedForScope(scopeStack[scopeStack.length - 1], tokens, name)
+      } else if (token.isFunctionScopedDeclaration()) {
+        let stackIndex = scopeStack.length - 1
         while (stackIndex > 0 && !scopeStack[stackIndex].isFunctionScope) {
-          stackIndex--;
+          stackIndex--
         }
         if (stackIndex < 0) {
-          throw new Error("Did not find parent function scope.");
+          throw new Error("Did not find parent function scope.")
         }
-        markShadowedForScope(scopeStack[stackIndex], tokens, name);
+        markShadowedForScope(scopeStack[stackIndex], tokens, name)
       }
     }
   }
   if (scopeStack.length > 0) {
-    throw new Error("Expected empty scope stack after processing file.");
+    throw new Error("Expected empty scope stack after processing file.")
   }
 }
 
 function markShadowedForScope(scope: Scope, tokens: TokenProcessor, name: string): void {
   for (let i = scope.startTokenIndex; i < scope.endTokenIndex; i++) {
-    const token = tokens.tokens[i];
+    const token = tokens.tokens[i]
     if (
       (token.type === tt.name || token.type === tt.jsxName) &&
       tokens.identifierNameForToken(token) === name
     ) {
-      token.shadowsGlobal = true;
+      token.shadowsGlobal = true
     }
   }
 }

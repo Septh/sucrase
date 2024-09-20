@@ -1,16 +1,16 @@
-import {IdentifierRole, isTopLevelDeclaration} from "../parser/token";
-import type {TokenProcessor} from "../processors/TokenProcessor";
-import Transformer from "./Transformer";
+import { IdentifierRole } from "../parser/token"
+import type { TokenProcessor } from "../processors/TokenProcessor"
+import Transformer from "./Transformer"
 
 export class ReactHotLoaderTransformer extends Transformer {
   private extractedDefaultExportName: string | null = null;
 
   constructor(readonly tokens: TokenProcessor, readonly filePath: string) {
-    super();
+    super()
   }
 
   setExtractedDefaultExportName(extractedDefaultExportName: string): void {
-    this.extractedDefaultExportName = extractedDefaultExportName;
+    this.extractedDefaultExportName = extractedDefaultExportName
   }
 
   getPrefixCode(): string {
@@ -20,29 +20,29 @@ export class ReactHotLoaderTransformer extends Transformer {
         enterModule && enterModule(module);
       })();`
       .replace(/\s+/g, " ")
-      .trim();
+      .trim()
   }
 
   getSuffixCode(): string {
-    const topLevelNames = new Set<string>();
+    const topLevelNames = new Set<string>()
     for (const token of this.tokens.tokens) {
       if (
         !token.isType &&
-        isTopLevelDeclaration(token) &&
+        token.isTopLevelDeclaration() &&
         token.identifierRole !== IdentifierRole.ImportDeclaration
       ) {
-        topLevelNames.add(this.tokens.identifierNameForToken(token));
+        topLevelNames.add(this.tokens.identifierNameForToken(token))
       }
     }
     const namesToRegister = Array.from(topLevelNames).map((name) => ({
       variableName: name,
       uniqueLocalName: name,
-    }));
+    }))
     if (this.extractedDefaultExportName) {
       namesToRegister.push({
         variableName: this.extractedDefaultExportName,
         uniqueLocalName: "default",
-      });
+      })
     }
     return `
 ;(function () {
@@ -52,18 +52,18 @@ export class ReactHotLoaderTransformer extends Transformer {
     return;
   }
 ${namesToRegister
-  .map(
-    ({variableName, uniqueLocalName}) =>
-      `  reactHotLoader.register(${variableName}, "${uniqueLocalName}", ${JSON.stringify(
-        this.filePath || "",
-      )});`,
-  )
-  .join("\n")}
+        .map(
+          ({ variableName, uniqueLocalName }) =>
+            `  reactHotLoader.register(${variableName}, "${uniqueLocalName}", ${JSON.stringify(
+              this.filePath || "",
+            )});`,
+        )
+        .join("\n")}
   leaveModule(module);
-})();`;
+})();`
   }
 
   process(): boolean {
-    return false;
+    return false
   }
 }

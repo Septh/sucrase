@@ -1,16 +1,15 @@
-import {isTopLevelDeclaration} from "../parser/token";
-import {TokenType as tt} from "../parser/generated/types";
-import type {TokenProcessor} from "../processors/TokenProcessor";
+import { TokenType as tt } from "../parser/generated/types"
+import type { TokenProcessor } from "../processors/TokenProcessor"
 
 export interface DeclarationInfo {
-  typeDeclarations: Set<string>;
-  valueDeclarations: Set<string>;
+  typeDeclarations: Set<string>
+  valueDeclarations: Set<string>
 }
 
 export const EMPTY_DECLARATION_INFO: DeclarationInfo = {
   typeDeclarations: new Set(),
   valueDeclarations: new Set(),
-};
+}
 
 /**
  * Get all top-level identifiers that should be preserved when exported in TypeScript.
@@ -24,17 +23,17 @@ export const EMPTY_DECLARATION_INFO: DeclarationInfo = {
  *   rule them out. --isolatedModules disallows re-exports, which catches errors here.
  */
 export function getDeclarationInfo(tokens: TokenProcessor): DeclarationInfo {
-  const typeDeclarations: Set<string> = new Set();
-  const valueDeclarations: Set<string> = new Set();
+  const typeDeclarations: Set<string> = new Set()
+  const valueDeclarations: Set<string> = new Set()
   for (let i = 0; i < tokens.tokens.length; i++) {
-    const token = tokens.tokens[i];
-    if (token.type === tt.name && isTopLevelDeclaration(token)) {
+    const token = tokens.tokens[i]
+    if (token.type === tt.name && token.isTopLevelDeclaration()) {
       if (token.isType) {
-        typeDeclarations.add(tokens.identifierNameForToken(token));
+        typeDeclarations.add(tokens.identifierNameForToken(token))
       } else {
-        valueDeclarations.add(tokens.identifierNameForToken(token));
+        valueDeclarations.add(tokens.identifierNameForToken(token))
       }
     }
   }
-  return {typeDeclarations, valueDeclarations};
+  return { typeDeclarations, valueDeclarations }
 }
