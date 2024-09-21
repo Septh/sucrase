@@ -169,6 +169,7 @@ export class Parser {
                             // Key after prop spread takes precedence over number of children,
                             // since it means we switch to createElement, which doesn't care
                             // about number of children.
+                            // @ts-expect-error TS2367: This comparison appears to be unintentional because the types 'JSXRole.NoChildren' and 'JSXRole.KeyAfterPropSpread' have no overlap.
                             if (this.state.tokens[initialTokenIndex].jsxRole !== JSXRole.KeyAfterPropSpread) {
                                 if (numExplicitChildren === 1) {
                                     this.state.tokens[initialTokenIndex].jsxRole = JSXRole.OneChild
