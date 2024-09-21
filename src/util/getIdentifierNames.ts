@@ -1,5 +1,5 @@
 import type {Token} from "../parser/token";
-import {TokenType as tt} from "../parser/generated/types";
+import {TokenType as tt} from "../parser/types.generated";
 
 /**
  * Get all identifier names in the code, in order, including duplicates.

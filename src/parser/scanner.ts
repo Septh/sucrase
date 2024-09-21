@@ -1,8 +1,8 @@
 import type { State } from './state'
 import { IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START, IS_WHITESPACE, Charcode } from './charcode'
 import { ContextualKeyword } from './keywords'
-import { TokenType as tt, type TokenType } from './generated/types'
-import { READ_WORD_TREE } from './generated/readWordTree'
+import { TokenType as tt, type TokenType } from './types.generated'
+import { READ_WORD_TREE } from './readWordTree.generated'
 
 export type Scanner = ReturnType<typeof createScanner>
 

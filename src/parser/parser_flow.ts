@@ -1,5 +1,5 @@
 import { Parser, StopState } from './parser_base'
-import { TokenType } from './generated/types'
+import { TokenType } from './types.generated'
 import { ContextualKeyword } from './keywords'
 import { TypeAndKeyword } from './token'
 

@@ -1,4 +1,4 @@
-import { TokenType, formatTokenType } from './generated/types'
+import { TokenType, formatTokenType } from './types.generated'
 import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'

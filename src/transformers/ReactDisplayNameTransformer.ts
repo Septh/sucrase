@@ -1,7 +1,7 @@
 import type {CJSImportProcessor} from "../processors/CJSImportProcessor";
 import type {Options} from "../index";
 import {IdentifierRole} from "../parser/token";
-import {TokenType as tt} from "../parser/generated/types";
+import {TokenType as tt} from "../parser/types.generated";
 import type {TokenProcessor} from "../processors/TokenProcessor";
 import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";

@@ -2,7 +2,7 @@ import type {HelperManager} from "../managers/HelperManager";
 import type {Options} from "../index";
 import type {NameManager} from "../managers/NameManager";
 import {ContextualKeyword} from "../parser/keywords";
-import {TokenType as tt} from "../parser/generated/types";
+import {TokenType as tt} from "../parser/types.generated";
 import type {TokenProcessor} from "../processors/TokenProcessor";
 import {elideImportEquals} from "../util/elideImportEquals";
 import {getDeclarationInfo,

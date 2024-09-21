@@ -1,5 +1,5 @@
 import type {Token} from "../parser/token";
-import {TokenType as tt} from "../parser/generated/types";
+import {TokenType as tt} from "../parser/types.generated";
 import type {TokenProcessor} from "../processors/TokenProcessor";
 import {isIdentifier} from "../util/isIdentifier";
 import type {RootTransformer} from "./RootTransformer";

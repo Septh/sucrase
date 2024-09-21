@@ -1,7 +1,7 @@
 import LinesAndColumns from "lines-and-columns";
 
 import type {Token} from "../parser/token";
-import {formatTokenType} from "../parser/generated/types";
+import {formatTokenType} from "../parser/types.generated";
 
 export function formatTokens(code: string, tokens: Array<Token>): string {
   if (tokens.length === 0) {

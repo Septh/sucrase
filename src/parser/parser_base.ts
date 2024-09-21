@@ -1,5 +1,5 @@
 import { Scope, State } from './state'
-import { TokenType } from './generated/types'
+import { TokenType } from './types.generated'
 import { ContextualKeyword } from './keywords'
 import { IdentifierRole, JSXRole, type Token } from './token'
 import { Charcode, IS_IDENTIFIER_START } from './charcode'

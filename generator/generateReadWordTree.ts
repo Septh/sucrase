@@ -85,8 +85,8 @@ const CONTEXTUAL_KEYWORDS = [
 
 const CODE = `\
 // Generated file, do not edit! Run "yarn generate" to re-generate this file.
-import {ContextualKeyword} from "../keywords";
-import {TokenType as tt} from "./types";
+import {ContextualKeyword} from "./keywords";
+import {TokenType as tt} from "./types.generated";
 
 // prettier-ignore
 export const READ_WORD_TREE = new Int32Array([

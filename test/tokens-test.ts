@@ -2,7 +2,7 @@ import * as assert from "assert";
 import {parse} from "../src/parser/state";
 import {IdentifierRole, JSXRole, type Token} from "../src/parser/token";
 import {ContextualKeyword} from "../src/parser/keywords";
-import {TokenType, TokenType as tt} from "../src/parser/generated/types";
+import {TokenType, TokenType as tt} from "../src/parser/types.generated";
 
 type SimpleToken = Token & {label?: string};
 type TokenExpectation = {[K in keyof SimpleToken]?: SimpleToken[K]};

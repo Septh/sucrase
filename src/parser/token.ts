@@ -1,5 +1,5 @@
 import type { ContextualKeyword } from "./keywords"
-import type { TokenType } from "./generated/types"
+import type { TokenType } from "./types.generated"
 import type { State } from './state'
 
 export const enum IdentifierRole {

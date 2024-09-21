@@ -1,6 +1,6 @@
 import type {Options} from "../index";
 import {IdentifierRole} from "../parser/token";
-import {TokenType, TokenType as tt} from "../parser/generated/types";
+import {TokenType, TokenType as tt} from "../parser/types.generated";
 import type {TokenProcessor} from "../processors/TokenProcessor";
 import {startsWithLowerCase} from "../transformers/JSXTransformer";
 import {getJSXPragmaInfo} from "./getJSXPragmaInfo";
