@@ -1,8 +1,6 @@
-import { Parser } from './parser_base'
+import { Parser, StopState } from './parser_base'
 import { TokenType } from './generated/types'
 import { ContextualKeyword } from './keywords'
-import { StopState } from './traverser'
-import { nextJSXTagToken } from './plugins/jsx'
 import { IdentifierRole } from './token'
 
 const enum FunctionType {
@@ -761,7 +759,7 @@ export class ParserTypescript extends Parser {
                 this.state.eat(TokenType.comma)
             }
             // Process >, but the one after needs to be parsed JSX-style.
-            nextJSXTagToken()
+            this.state.nextJSXTagToken()
             this.state.popTypeContext(oldIsType)
         }
     }
@@ -1758,4 +1756,10 @@ export class ParserTypescript extends Parser {
         }
     }
 
+    // Parses element name in any form - namespaced, member
+    // or single identifier.
+    protected override jsxParseElementName(): void {
+        super.jsxParseElementName()
+        this.tsTryParseJSXTypeArgument()
+    }
 }

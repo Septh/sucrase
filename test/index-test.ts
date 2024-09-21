@@ -1,6 +1,5 @@
 import * as assert from "assert";
-
-import {getFormattedTokens} from "../src";
+import {getFormattedTokens} from "../src/context";
 
 describe("getFormattedTokens", () => {
   it("formats a simple program", () => {

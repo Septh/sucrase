@@ -1,7 +1,6 @@
-import { Parser } from './parser_base'
+import { Parser, StopState } from './parser_base'
 import { TokenType } from './generated/types'
 import { ContextualKeyword } from './keywords'
-import { StopState } from './traverser'
 import { TypeAndKeyword } from './token'
 
 export class ParserFlow extends Parser {
@@ -1133,6 +1132,4 @@ export class ParserFlow extends Parser {
             this.flowParseTypeAnnotation()
         }
     }
-
-
 }

@@ -1,4 +1,4 @@
-import { type TokenType, TokenType as tt, formatTokenType } from './generated/types'
+import { TokenType, formatTokenType } from './generated/types'
 import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'
@@ -7,22 +7,32 @@ import { Parser } from './parser_base'
 import { ParserFlow } from './parser_flow'
 import { ParserTypescript } from './parser_typescript'
 
-export let state: State
 export let parser: Parser
+
+export class Loc {
+    line: number
+    column: number
+    constructor(line: number, column: number) {
+        this.line = line
+        this.column = column
+    }
+}
 
 export function initParser(
     inputCode: string,
     isJSXEnabledArg: boolean,
     isTypeScriptEnabledArg: boolean,
     isFlowEnabledArg: boolean,
-): void {
-    state = new State(inputCode, isTypeScriptEnabledArg, isFlowEnabledArg, isJSXEnabledArg)
+) {
+    const state = new State(inputCode, isTypeScriptEnabledArg, isFlowEnabledArg, isJSXEnabledArg)
     if (isFlowEnabledArg)
         parser = new ParserFlow(state)
     else if (isTypeScriptEnabledArg)
         parser = new ParserTypescript(state)
     else
         parser = new Parser(state)
+
+    return { state, parser }
 }
 
 export class Scope {
@@ -81,7 +91,7 @@ export class State {
     pos: number = 0;
 
     // Information about the current token.
-    type: TokenType = tt.eof;
+    type: TokenType = TokenType.eof;
     contextualKeyword: ContextualKeyword = ContextualKeyword.NONE;
     start: number = 0;
     end: number = 0;
@@ -170,17 +180,30 @@ export class State {
     // Call instead of next when inside a template, since that needs to be handled differently.
     nextTemplateToken(): void {
         this.tokens.push(new Token(this))
-        this.start = state.pos
+        this.start = this.pos
         this.scanner.readTmplToken()
     }
 
     // The tokenizer never parses regexes by default. Instead, the parser is responsible for
     // instructing it to parse a regex when we see a slash at the start of an expression.
     retokenizeSlashAsRegex(): void {
-        if (this.type === tt.assign) {
+        if (this.type === TokenType.assign) {
             --this.pos
         }
         this.scanner.readRegexp()
+    }
+
+    nextJSXTagToken(): void {
+        this.tokens.push(new Token(this))
+        this.scanner.skipSpace()
+        this.start = this.pos
+        this.scanner.jsxReadTag()
+    }
+
+    nextJSXExprToken(): void {
+        this.tokens.push(new Token(this))
+        this.start = this.pos
+        this.scanner.jsxReadToken()
     }
 
     match(type: TokenType): boolean {
@@ -241,12 +264,12 @@ export class State {
 
     isLookaheadContextual(contextualKeyword: ContextualKeyword): boolean {
         const l = this.lookaheadTypeAndKeyword()
-        return l.type === tt.name && l.contextualKeyword === contextualKeyword
+        return l.type === TokenType.name && l.contextualKeyword === contextualKeyword
     }
 
     // Consumes contextual keyword if possible.
     eatContextual(contextualKeyword: ContextualKeyword): boolean {
-        return this.contextualKeyword === contextualKeyword && this.eat(tt.name)
+        return this.contextualKeyword === contextualKeyword && this.eat(TokenType.name)
     }
 
     // Asserts that following token is given contextual keyword.
@@ -258,7 +281,7 @@ export class State {
 
     // Test whether a semicolon can be inserted at the current position.
     canInsertSemicolon(): boolean {
-        return this.match(tt.eof) || this.match(tt.braceR) || this.hasPrecedingLineBreak()
+        return this.match(TokenType.eof) || this.match(TokenType.braceR) || this.hasPrecedingLineBreak()
     }
 
     hasPrecedingLineBreak(): boolean {
@@ -295,7 +318,7 @@ export class State {
     }
 
     isLineTerminator(): boolean {
-        return this.eat(tt.semi) || this.canInsertSemicolon()
+        return this.eat(TokenType.semi) || this.canInsertSemicolon()
     }
 
     // Consume a semicolon, or, failing that, see if we are allowed to
@@ -319,7 +342,7 @@ export class State {
      * Transition the parser to an error state. All code needs to be written to naturally unwind in this
      * state, which allows us to backtrack without exceptions and without error plumbing everywhere.
      */
-    unexpected(message: string = "Unexpected token", pos: number = state.start): void {
+    unexpected(message: string = "Unexpected token", pos: number = this.start): void {
         if (this.error) {
             return
         }
@@ -328,6 +351,62 @@ export class State {
         err.pos = pos
         this.error = err
         this.pos = this.input.length
-        this.scanner.finishToken(tt.eof)
+        this.scanner.finishToken(TokenType.eof)
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    augmentError(error: any): any {
+        if ("pos" in error) {
+            const loc = this.locationForIndex(error.pos)
+            error.message += ` (${loc.line}:${loc.column})`
+            error.loc = loc
+        }
+        return error
+    }
+
+    locationForIndex(pos: number): Loc {
+        let line = 1
+        let column = 1
+        for (let i = 0; i < pos; i++) {
+            if (this.input.charCodeAt(i) === Charcode.lineFeed) {
+                line++
+                column = 1
+            } else {
+                column++
+            }
+        }
+        return new Loc(line, column)
+    }
+
 }
+
+export function parseFile(state: State) {
+    // If enabled, skip leading hashbang line.
+    if (
+        state.pos === 0 &&
+        state.input.charCodeAt(0) === Charcode.numberSign &&
+        state.input.charCodeAt(1) === Charcode.exclamationMark
+    ) {
+        state.scanner.skipLineComment(2)
+    }
+    state.scanner.nextToken()
+    return parser.parseTopLevel()
+}
+
+export function parse(
+    input: string,
+    isJSXEnabled: boolean,
+    isTypeScriptEnabled: boolean,
+    isFlowEnabled: boolean,
+  ) {
+    if (isFlowEnabled && isTypeScriptEnabled) {
+      throw new Error("Cannot combine flow and typescript plugins.");
+    }
+    const { state } = initParser(input, isJSXEnabled, isTypeScriptEnabled, isFlowEnabled);
+    const result = parseFile(state);
+    if (state.error) {
+      throw state.augmentError(state.error);
+    }
+    return result;
+  }
+  

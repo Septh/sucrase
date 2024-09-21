@@ -1,10 +1,9 @@
 import * as assert from "assert"
-
 import { CJSImportProcessor } from "../src/processors/CJSImportProcessor"
 import { HelperManager } from "../src/managers/HelperManager"
 import { hasShadowedGlobals } from "../src/util/identifyShadowedGlobals"
 import { NameManager } from "../src/managers/NameManager"
-import { parse } from "../src/parser"
+import { parse } from "../src/parser/state"
 import { TokenProcessor } from "../src/processors/TokenProcessor"
 
 function assertHasShadowedGlobals(code: string, expected: boolean): void {

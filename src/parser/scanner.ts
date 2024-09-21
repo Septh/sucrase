@@ -121,6 +121,124 @@ export function createScanner(state: State) {
         }
     }
 
+    // #region JSX -------------------------------------------------------------
+
+    function jsxReadToken(): void {
+        let sawNewline = false
+        let sawNonWhitespace = false
+        while (true) {
+            if (state.pos >= state.input.length) {
+                state.unexpected("Unterminated JSX contents")
+                return
+            }
+    
+            const ch = state.input.charCodeAt(state.pos)
+            if (ch === Charcode.lessThan || ch === Charcode.leftCurlyBrace) {
+                if (state.pos === state.start) {
+                    if (ch === Charcode.lessThan) {
+                        state.pos++
+                        state.scanner.finishToken(tt.jsxTagStart)
+                        return
+                    }
+                    state.scanner.getTokenFromCode(ch)
+                    return
+                }
+                if (sawNewline && !sawNonWhitespace) {
+                    state.scanner.finishToken(tt.jsxEmptyText)
+                } else {
+                    state.scanner.finishToken(tt.jsxText)
+                }
+                return
+            }
+    
+            // This is part of JSX text.
+            if (ch === Charcode.lineFeed) {
+                sawNewline = true
+            } else if (ch !== Charcode.space && ch !== Charcode.carriageReturn && ch !== Charcode.tab) {
+                sawNonWhitespace = true
+            }
+            state.pos++
+        }
+    }
+    
+    function jsxReadString(quote: number): void {
+        state.pos++
+        for (;;) {
+            if (state.pos >= state.input.length) {
+                state.unexpected("Unterminated string constant")
+                return
+            }
+    
+            const ch = state.input.charCodeAt(state.pos)
+            if (ch === quote) {
+                state.pos++
+                break
+            }
+            state.pos++
+        }
+        state.scanner.finishToken(tt.string)
+    }
+    
+    // Read a JSX identifier (valid tag or attribute name).
+    //
+    // Optimized version since JSX identifiers can't contain
+    // escape characters and so can be read as single slice.
+    // Also assumes that first character was already checked
+    // by isIdentifierStart in readToken.
+    function jsxReadWord(): void {
+        let ch: number
+        do {
+            if (state.pos > state.input.length) {
+                state.unexpected("Unexpectedly reached the end of input.")
+                return
+            }
+            ch = state.input.charCodeAt(++state.pos)
+        } while (IS_IDENTIFIER_CHAR[ch] || ch === Charcode.dash)
+        state.scanner.finishToken(tt.jsxName)
+    }
+    
+    function jsxReadTag(): void {
+        const code = state.input.charCodeAt(state.pos)
+    
+        if (IS_IDENTIFIER_START[code]) {
+            jsxReadWord()
+        } else if (code === Charcode.quotationMark || code === Charcode.apostrophe) {
+            jsxReadString(code)
+        } else {
+            // The following tokens are just one character each.
+            ++state.pos
+            switch (code) {
+                case Charcode.greaterThan:
+                    state.scanner.finishToken(tt.jsxTagEnd)
+                    break
+                case Charcode.lessThan:
+                    state.scanner.finishToken(tt.jsxTagStart)
+                    break
+                case Charcode.slash:
+                    state.scanner.finishToken(tt.slash)
+                    break
+                case Charcode.equalsTo:
+                    state.scanner.finishToken(tt.eq)
+                    break
+                case Charcode.leftCurlyBrace:
+                    state.scanner.finishToken(tt.braceL)
+                    break
+                case Charcode.dot:
+                    state.scanner.finishToken(tt.dot)
+                    break
+                case Charcode.colon:
+                    state.scanner.finishToken(tt.colon)
+                    break
+                default:
+                    state.unexpected()
+            }
+        }
+    }
+    
+    // #endregion
+
+    // #region RegExp ----------------------------------------------------------
+
     function readRegexp(): void {
         const start = state.pos
         let escaped = false
@@ -151,6 +269,8 @@ export function createScanner(state: State) {
     
         finishToken(tt.regexp)
     }    
+
+    // #endregion
 
     /**
      * Read an identifier, producing either a name token or matching on one of the existing keywords.
@@ -808,6 +928,9 @@ export function createScanner(state: State) {
         rescan_gt,
         getTokenFromCode,
         skipWord,
-        readWord
+        readWord,
+        jsxReadTag,
+        jsxReadWord,
+        jsxReadToken
     }
 }

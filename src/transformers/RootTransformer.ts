@@ -1,5 +1,5 @@
 import type {HelperManager} from "../managers/HelperManager";
-import type {Options, SucraseContext, Transform} from "../index";
+import type {Options, Transform} from "../index";
 import type {NameManager} from "../managers/NameManager";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/generated/types";
@@ -17,6 +17,7 @@ import {ReactDisplayNameTransformer} from "./ReactDisplayNameTransformer";
 import {ReactHotLoaderTransformer} from "./ReactHotLoaderTransformer";
 import type Transformer from "./Transformer";
 import {TypeScriptTransformer} from "./TypeScriptTransformer";
+import type { SucraseContext } from '../context'
 
 export interface RootTransformerResult {
   code: string;

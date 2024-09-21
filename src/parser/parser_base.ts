@@ -1,16 +1,237 @@
 import { Scope, State } from './state'
 import { TokenType } from './generated/types'
 import { ContextualKeyword } from './keywords'
-import { StopState } from './traverser'
-import { jsxParseElement } from './plugins/jsx'
-import { IdentifierRole } from './token'
+import { IdentifierRole, JSXRole, type Token } from './token'
 import { Charcode, IS_IDENTIFIER_START } from './charcode'
-import { File } from "./index"
+
+export class File {
+    tokens: Array<Token>
+    scopes: Array<Scope>
+
+    constructor(tokens: Array<Token>, scopes: Array<Scope>) {
+        this.tokens = tokens
+        this.scopes = scopes
+    }
+}
+
+export class StopState {
+    stop: boolean
+    constructor(stop: boolean) {
+        this.stop = stop
+    }
+}
 
 export class Parser {
-    constructor(protected state: State) {}
+    constructor(protected state: State) { }
 
-    // #region lval.ts -------------------------------------------------------------
+    // #region jsx.ts ----------------------------------------------------------
+
+    // Parse next token as JSX identifier
+    protected jsxParseIdentifier(): void {
+        this.state.nextJSXTagToken()
+    }
+
+    // Parse namespaced identifier.
+    protected jsxParseNamespacedName(identifierRole: IdentifierRole): void {
+        this.jsxParseIdentifier()
+        if (!this.state.eat(TokenType.colon)) {
+            // Plain identifier, so this is an access.
+            this.state.tokens[this.state.tokens.length - 1].identifierRole = identifierRole
+            return
+        }
+        // Process the second half of the namespaced name.
+        this.jsxParseIdentifier()
+    }
+
+    // Parses element name in any form - namespaced, member
+    // or single identifier.
+    protected jsxParseElementName(): void {
+        const firstTokenIndex = this.state.tokens.length
+        this.jsxParseNamespacedName(IdentifierRole.Access)
+        let hadDot = false
+        while (this.state.match(TokenType.dot)) {
+            hadDot = true
+            this.state.nextJSXTagToken()
+            this.jsxParseIdentifier()
+        }
+        // For tags like <div> with a lowercase letter and no dots, the name is
+        // actually *not* an identifier access, since it's referring to a built-in
+        // tag name. Remove the identifier role in this case so that it's not
+        // accidentally transformed by the imports transform when preserving JSX.
+        if (!hadDot) {
+            const firstToken = this.state.tokens[firstTokenIndex]
+            const firstChar = this.state.input.charCodeAt(firstToken.start)
+            if (firstChar >= Charcode.lowercaseA && firstChar <= Charcode.lowercaseZ) {
+                firstToken.identifierRole = null
+            }
+        }
+    }
+
+    // Parses any type of JSX attribute value.
+    protected jsxParseAttributeValue(): void {
+        switch (this.state.type) {
+            case TokenType.braceL:
+                this.state.next()
+                this.parseExpression()
+                this.state.nextJSXTagToken()
+                return
+
+            case TokenType.jsxTagStart:
+                this.jsxParseElement()
+                this.state.nextJSXTagToken()
+                return
+
+            case TokenType.string:
+                this.state.nextJSXTagToken()
+                return
+
+            default:
+                this.state.unexpected("JSX value should be either an expression or a quoted JSX text")
+        }
+    }
+
+    // Parse JSX spread child, after already processing the {
+    // Does not parse the closing }
+    protected jsxParseSpreadChild(): void {
+        this.state.expect(TokenType.ellipsis)
+        this.parseExpression()
+    }
+
+    // Parses JSX opening tag starting after "<".
+    // Returns true if the tag was self-closing.
+    // Does not parse the last token.
+    protected jsxParseOpeningElement(initialTokenIndex: number): boolean {
+        if (this.state.match(TokenType.jsxTagEnd)) {
+            // This is an open-fragment.
+            return false
+        }
+        this.jsxParseElementName()
+        let hasSeenPropSpread = false
+        while (!this.state.match(TokenType.slash) && !this.state.match(TokenType.jsxTagEnd) && !this.state.error) {
+            if (this.state.eat(TokenType.braceL)) {
+                hasSeenPropSpread = true
+                this.state.expect(TokenType.ellipsis)
+                this.parseMaybeAssign()
+                // }
+                this.state.nextJSXTagToken()
+                continue
+            }
+            if (
+                hasSeenPropSpread &&
+                this.state.end - this.state.start === 3 &&
+                this.state.input.charCodeAt(this.state.start) === Charcode.lowercaseK &&
+                this.state.input.charCodeAt(this.state.start + 1) === Charcode.lowercaseE &&
+                this.state.input.charCodeAt(this.state.start + 2) === Charcode.lowercaseY
+            ) {
+                this.state.tokens[initialTokenIndex].jsxRole = JSXRole.KeyAfterPropSpread
+            }
+            this.jsxParseNamespacedName(IdentifierRole.ObjectKey)
+            if (this.state.match(TokenType.eq)) {
+                this.state.nextJSXTagToken()
+                this.jsxParseAttributeValue()
+            }
+        }
+        const isSelfClosing = this.state.match(TokenType.slash)
+        if (isSelfClosing) {
+            // /
+            this.state.nextJSXTagToken()
+        }
+        return isSelfClosing
+    }
+
+    // Parses JSX closing tag starting after "</".
+    // Does not parse the last token.
+    protected jsxParseClosingElement(): void {
+        if (this.state.match(TokenType.jsxTagEnd)) {
+            // Fragment syntax, so we immediately have a tag end.
+            return
+        }
+        this.jsxParseElementName()
+    }
+
+    // Parses entire JSX element, including its opening tag
+    // (starting after "<"), attributes, contents and closing tag.
+    // Does not parse the last token.
+    protected jsxParseElementAt(): void {
+        const initialTokenIndex = this.state.tokens.length - 1
+        this.state.tokens[initialTokenIndex].jsxRole = JSXRole.NoChildren
+        let numExplicitChildren = 0
+        const isSelfClosing = this.jsxParseOpeningElement(initialTokenIndex)
+        if (!isSelfClosing) {
+            this.state.nextJSXExprToken()
+            while (true) {
+                switch (this.state.type) {
+                    case TokenType.jsxTagStart:
+                        this.state.nextJSXTagToken()
+                        if (this.state.match(TokenType.slash)) {
+                            this.state.nextJSXTagToken()
+                            this.jsxParseClosingElement()
+                            // Key after prop spread takes precedence over number of children,
+                            // since it means we switch to createElement, which doesn't care
+                            // about number of children.
+                            if (this.state.tokens[initialTokenIndex].jsxRole !== JSXRole.KeyAfterPropSpread) {
+                                if (numExplicitChildren === 1) {
+                                    this.state.tokens[initialTokenIndex].jsxRole = JSXRole.OneChild
+                                } else if (numExplicitChildren > 1) {
+                                    this.state.tokens[initialTokenIndex].jsxRole = JSXRole.StaticChildren
+                                }
+                            }
+                            return
+                        }
+                        numExplicitChildren++
+                        this.jsxParseElementAt()
+                        this.state.nextJSXExprToken()
+                        break
+
+                    case TokenType.jsxText:
+                        numExplicitChildren++
+                        this.state.nextJSXExprToken()
+                        break
+
+                    case TokenType.jsxEmptyText:
+                        this.state.nextJSXExprToken()
+                        break
+
+                    case TokenType.braceL:
+                        this.state.next()
+                        if (this.state.match(TokenType.ellipsis)) {
+                            this.jsxParseSpreadChild()
+                            this.state.nextJSXExprToken()
+                            // Spread children are a mechanism to explicitly mark children as
+                            // static, so count it as 2 children to satisfy the "more than one
+                            // child" condition.
+                            numExplicitChildren += 2
+                        } else {
+                            // If we see {}, this is an empty pseudo-expression that doesn't
+                            // count as a child.
+                            if (!this.state.match(TokenType.braceR)) {
+                                numExplicitChildren++
+                                this.parseExpression()
+                            }
+                            this.state.nextJSXExprToken()
+                        }
+
+                        break
+
+                    // istanbul ignore next - should never happen
+                    default:
+                        this.state.unexpected()
+                        return
+                }
+            }
+        }
+    }
+
+    // Parses entire JSX element from current position.
+    // Does not parse the last token.
+    protected jsxParseElement(): void {
+        this.state.nextJSXTagToken()
+        this.jsxParseElementAt()
+    }
+
+    // #endregion
+
+    // #region lval.ts ---------------------------------------------------------
     protected parseSpread(): void {
         this.state.next()
         this.parseMaybeAssign(false)
@@ -139,7 +360,7 @@ export class Parser {
 
     // These nest, from the most general expression type at the top to
     // 'atomic', nondivisible expression types at the bottom. Most of
-    // the functions will simply let the private (s) below them parse,
+    // the functions will simply let the protected (s) below them parse,
     // and, *if* the syntactic construct they handle is present, wrap
     // the AST node that the inner parser gave them in another node.
     protected parseExpression(noIn: boolean = false): void {
@@ -155,7 +376,7 @@ export class Parser {
      * noIn is used when parsing a for loop so that we don't interpret a following "in" as the binary
      * operatior.
      * isWithinParens is used to indicate that we're parsing something that might be a comma expression
-     * or might be an arrow private or might be a Flow type assertion (which requires explicit parens).
+     * or might be an arrow protected or might be a Flow type assertion (which requires explicit parens).
      * In these cases, we should allow : and ?: after the initial "left" part.
      */
     protected parseMaybeAssign(noIn: boolean = false, isWithinParens: boolean = false): boolean {
@@ -189,7 +410,7 @@ export class Parser {
 
     // Parse a ternary conditional (`?:`) operator.
     // Returns true if the expression was an arrow function.
-    private parseMaybeConditional(noIn: boolean): boolean {
+    protected parseMaybeConditional(noIn: boolean): boolean {
         const wasArrow = this.parseExprOps(noIn)
         if (wasArrow) {
             return true
@@ -212,7 +433,7 @@ export class Parser {
 
     // Start the precedence parser.
     // Returns true if this was an arrow function
-    private parseExprOps(noIn: boolean): boolean {
+    protected parseExprOps(noIn: boolean): boolean {
         const startTokenIndex = this.state.tokens.length
         const wasArrow = this.parseMaybeUnary()
         if (wasArrow) {
@@ -224,7 +445,7 @@ export class Parser {
 
     // Parse binary operators with the operator precedence parsing
     // algorithm. `left` is the left-hand side of the operator.
-    // `minPrec` provides context that allows the private to stop and
+    // `minPrec` provides context that allows the protected to stop and
     // defer further parser to one of its callers when it encounters an
     // operator that has a lower precedence than the set it is parsing.
     protected parseExprOp(startTokenIndex: number, minPrec: number, noIn: boolean): void {
@@ -354,7 +575,7 @@ export class Parser {
         } else if (!noCalls && this.state.match(TokenType.parenL)) {
             if (this.atPossibleAsync()) {
                 // We see "async", but it's possible it's a usage of the name "async". Parse as if it's a
-                // private call, and if we see an arrow later, backtrack and re-parse as a parameter list.
+                // protected call, and if we see an arrow later, backtrack and re-parse as a parameter list.
                 const snapshot = this.state.snapshot()
                 const asyncStartTokenIndex = this.state.tokens.length
                 this.state.next()
@@ -367,7 +588,7 @@ export class Parser {
                 this.state.tokens[this.state.tokens.length - 1].contextId = callContextId
 
                 if (this.shouldParseAsyncArrow()) {
-                    // We hit an arrow, so backtrack and start again parsing private parameters.
+                    // We hit an arrow, so backtrack and start again parsing protected parameters.
                     this.state.restoreFromSnapshot(snapshot)
                     stopState.stop = true
                     this.state.scopeDepth++
@@ -416,7 +637,7 @@ export class Parser {
         }
     }
 
-    private shouldParseAsyncArrow(): boolean {
+    protected shouldParseAsyncArrow(): boolean {
         return this.state.match(TokenType.colon) || this.state.match(TokenType.arrow)
     }
 
@@ -431,7 +652,7 @@ export class Parser {
 
     // Parse a no-call expression (like argument of `new` or `::` operators).
 
-    private parseNoCallExpr(): void {
+    protected parseNoCallExpr(): void {
         const startTokenIndex = this.state.tokens.length
         this.parseExprAtom()
         this.parseSubscripts(startTokenIndex, true)
@@ -444,7 +665,7 @@ export class Parser {
     // Returns true if the parsed expression was an arrow function.
     protected parseExprAtom(): boolean {
         if (this.state.eat(TokenType.modulo)) {
-            // V8 intrinsic expression. Just parse the identifier, and the private invocation is parsed
+            // V8 intrinsic expression. Just parse the identifier, and the protected invocation is parsed
             // naturally.
             this.parseIdentifier()
             return false
@@ -455,7 +676,7 @@ export class Parser {
             return false
         } else if (this.state.match(TokenType.lessThan) && this.state.isJSXEnabled) {
             this.state.type = TokenType.jsxTagStart
-            jsxParseElement()
+            this.jsxParseElement()
             this.state.next()
             return false
         }
@@ -599,12 +820,12 @@ export class Parser {
         }
     }
 
-    private parseMaybePrivateName(): void {
+    protected parseMaybePrivateName(): void {
         this.state.eat(TokenType.hash)
         this.parseIdentifier()
     }
 
-    private parseFunctionExpression(): void {
+    protected parseFunctionExpression(): void {
         const functionStart = this.state.start
         this.parseIdentifier()
         if (this.state.eat(TokenType.dot)) {
@@ -625,7 +846,7 @@ export class Parser {
     }
 
     // Returns true if this was an arrow expression.
-    private parseParenAndDistinguishExpression(canBeArrow: boolean): boolean {
+    protected parseParenAndDistinguishExpression(canBeArrow: boolean): boolean {
         // Assume this is a normal parenthesized expression, but if we see an arrow, we'll bail and
         // start over as a parameter list.
         const snapshot = this.state.snapshot()
@@ -659,7 +880,7 @@ export class Parser {
         if (canBeArrow && this.shouldParseArrow()) {
             const wasArrow = this.parseArrow()
             if (wasArrow) {
-                // It was an arrow private this whole time, so start over and parse it as params so that we
+                // It was an arrow protected this whole time, so start over and parse it as params so that we
                 // get proper token annotations.
                 this.state.restoreFromSnapshot(snapshot)
                 this.state.scopeDepth++
@@ -669,7 +890,7 @@ export class Parser {
                 this.parseArrowExpression(startTokenIndex)
                 if (this.state.error) {
                     // Nevermind! This must have been something that looks very much like an
-                    // arrow private but where its "parameter list" isn't actually a valid
+                    // arrow protected but where its "parameter list" isn't actually a valid
                     // parameter list. Force non-arrow parsing.
                     // See https://github.com/alangpierce/sucrase/issues/666 for an example.
                     this.state.restoreFromSnapshot(snapshot)
@@ -683,7 +904,7 @@ export class Parser {
         return false
     }
 
-    private shouldParseArrow(): boolean {
+    protected shouldParseArrow(): boolean {
         return this.state.match(TokenType.colon) || !this.state.canInsertSemicolon()
     }
 
@@ -700,7 +921,7 @@ export class Parser {
     // not without wrapping it in parentheses. Thus, it uses the noCalls
     // argument to parseSubscripts to prevent it from consuming the
     // argument list.
-    private parseNew(): void {
+    protected parseNew(): void {
         this.state.expect(TokenType._new)
         if (this.state.eat(TokenType.dot)) {
             // new.target
@@ -717,7 +938,7 @@ export class Parser {
     protected parseNewArguments() {
     }
 
-    private parseNewCallee(): void {
+    protected parseNewCallee(): void {
         this.parseNoCallExpr()
         this.state.eat(TokenType.questionDot)
     }
@@ -780,7 +1001,7 @@ export class Parser {
             if (!isPattern && this.state.isContextual(ContextualKeyword._async)) {
                 if (isGenerator) this.state.unexpected()
 
-                    this.parseIdentifier()
+                this.parseIdentifier()
                 if (
                     this.state.match(TokenType.colon) ||
                     this.state.match(TokenType.parenL) ||
@@ -806,7 +1027,7 @@ export class Parser {
         this.state.tokens[this.state.tokens.length - 1].contextId = contextId
     }
 
-    private isGetterOrSetterMethod(isPattern: boolean): boolean {
+    protected isGetterOrSetterMethod(isPattern: boolean): boolean {
         // We go off of the next and don't bother checking if the node key is actually "get" or "set".
         // This lets us avoid generating a node, and should only make the validation worse.
         return (
@@ -820,7 +1041,7 @@ export class Parser {
     }
 
     // Returns true if this was a method.
-    private parseObjectMethod(isPattern: boolean, objectContextId: number): boolean {
+    protected parseObjectMethod(isPattern: boolean, objectContextId: number): boolean {
         // We don't need to worry about modifiers because object methods can't have optional bodies, so
         // the start will never be used.
         const functionStart = this.state.start
@@ -838,7 +1059,7 @@ export class Parser {
         return false
     }
 
-    private parseObjectProperty(isPattern: boolean, isBlockScope: boolean): void {
+    protected parseObjectProperty(isPattern: boolean, isBlockScope: boolean): void {
         if (this.state.eat(TokenType.colon)) {
             if (isPattern) {
                 this.parseMaybeDefault(isBlockScope)
@@ -919,7 +1140,7 @@ export class Parser {
         this.state.scopeDepth--
     }
 
-    // Parse arrow private expression.
+    // Parse arrow protected expression.
     // If the parameters are provided, they will be converted to an
     // assignable list.
     protected parseArrowExpression(startTokenIndex: number): void {
@@ -949,7 +1170,7 @@ export class Parser {
     // nothing in between them to be parsed as `null` (which is needed
     // for array literals).
 
-    private parseExprList(close: TokenType, allowEmpty: boolean = false): void {
+    protected parseExprList(close: TokenType, allowEmpty: boolean = false): void {
         let first = true
         while (!this.state.eat(close) && !this.state.error) {
             if (first) {
@@ -962,14 +1183,14 @@ export class Parser {
         }
     }
 
-    private parseExprListItem(allowEmpty: boolean): void {
+    protected parseExprListItem(allowEmpty: boolean): void {
         if (allowEmpty && this.state.match(TokenType.comma)) {
             // Empty item; nothing more to parse for this item.
         } else if (this.state.match(TokenType.ellipsis)) {
             this.parseSpread()
             this.parseParenItem()
         } else if (this.state.match(TokenType.question)) {
-            // Partial private application proposal.
+            // Partial protected application proposal.
             this.state.next()
         } else {
             this.parseMaybeAssign(false, true)
@@ -983,12 +1204,12 @@ export class Parser {
     }
 
     // Parses await expression inside async function.
-    private parseAwait(): void {
+    protected parseAwait(): void {
         this.parseMaybeUnary()
     }
 
     // Parses yield expression inside generator.
-    private parseYield(): void {
+    protected parseYield(): void {
         this.state.next()
         if (!this.state.match(TokenType.semi) && !this.state.canInsertSemicolon()) {
             this.state.eat(TokenType.star)
@@ -997,7 +1218,7 @@ export class Parser {
     }
 
     // https://github.com/tc39/proposal-js-module-blocks
-    private parseModuleExpression(): void {
+    protected parseModuleExpression(): void {
         this.state.expectContextual(ContextualKeyword._module)
         this.state.expect(TokenType.braceL)
         // For now, just call parseBlockBody to parse the block. In the future when we
@@ -1046,7 +1267,7 @@ export class Parser {
             case TokenType._function:
                 if (this.state.lookaheadType() === TokenType.dot) break
                 if (!declaration) this.state.unexpected()
-                    this.parseFunctionStatement()
+                this.parseFunctionStatement()
                 return
 
             case TokenType._class:
@@ -1180,7 +1401,7 @@ export class Parser {
      * backtracking-based lookahead for the `using` and identifier tokens. In the
      * future, this could be optimized with a character-based approach.
      */
-    private startsAwaitUsing(): boolean {
+    protected startsAwaitUsing(): boolean {
         if (!this.state.isContextual(ContextualKeyword._await)) {
             return false
         }
@@ -1207,7 +1428,7 @@ export class Parser {
         }
     }
 
-    private parseDecorator(): void {
+    protected parseDecorator(): void {
         this.state.next()
         if (this.state.eat(TokenType.parenL)) {
             this.parseExpression()
@@ -1231,7 +1452,7 @@ export class Parser {
         }
     }
 
-    private parseBreakContinueStatement(): void {
+    protected parseBreakContinueStatement(): void {
         this.state.next()
         if (!this.state.isLineTerminator()) {
             this.parseIdentifier()
@@ -1239,12 +1460,12 @@ export class Parser {
         }
     }
 
-    private parseDebuggerStatement(): void {
+    protected parseDebuggerStatement(): void {
         this.state.next()
         this.state.semicolon()
     }
 
-    private parseDoStatement(): void {
+    protected parseDoStatement(): void {
         this.state.next()
         this.parseStatement(false)
         this.state.expect(TokenType._while)
@@ -1252,7 +1473,7 @@ export class Parser {
         this.state.eat(TokenType.semi)
     }
 
-    private parseForStatement(): void {
+    protected parseForStatement(): void {
         this.state.scopeDepth++
         const startTokenIndex = this.state.tokens.length
         this.parseAmbiguousForStatement()
@@ -1266,7 +1487,7 @@ export class Parser {
      * management) as part of a loop.
      * https://github.com/tc39/proposal-explicit-resource-management
      */
-    private isUsingInLoop(): boolean {
+    protected isUsingInLoop(): boolean {
         if (!this.state.isContextual(ContextualKeyword._using)) {
             return false
         }
@@ -1285,7 +1506,7 @@ export class Parser {
     // whether the next token is `in` or `of`. When there is no init
     // part (semicolon immediately after the opening parenthesis), it
     // is a regular `for` loop.
-    private parseAmbiguousForStatement(): void {
+    protected parseAmbiguousForStatement(): void {
         this.state.next()
 
         let forAwait = false
@@ -1329,13 +1550,13 @@ export class Parser {
         this.parseFor()
     }
 
-    private parseFunctionStatement(): void {
+    protected parseFunctionStatement(): void {
         const functionStart = this.state.start
         this.state.next()
         this.parseFunction(functionStart, true)
     }
 
-    private parseIfStatement(): void {
+    protected parseIfStatement(): void {
         this.state.next()
         this.parseParenExpression()
         this.parseStatement(false)
@@ -1344,7 +1565,7 @@ export class Parser {
         }
     }
 
-    private parseReturnStatement(): void {
+    protected parseReturnStatement(): void {
         this.state.next()
 
         // In `return` (and `break`/`continue`), the keywords with
@@ -1357,7 +1578,7 @@ export class Parser {
         }
     }
 
-    private parseSwitchStatement(): void {
+    protected parseSwitchStatement(): void {
         this.state.next()
         this.parseParenExpression()
         this.state.scopeDepth++
@@ -1383,7 +1604,7 @@ export class Parser {
         this.state.scopeDepth--
     }
 
-    private parseThrowStatement(): void {
+    protected parseThrowStatement(): void {
         this.state.next()
         this.parseExpression()
         this.state.semicolon()
@@ -1393,7 +1614,7 @@ export class Parser {
         this.parseBindingAtom(true /* isBlockScope */)
     }
 
-    private parseTryStatement(): void {
+    protected parseTryStatement(): void {
         this.state.next()
 
         this.parseBlock()
@@ -1428,17 +1649,17 @@ export class Parser {
         this.state.semicolon()
     }
 
-    private parseWhileStatement(): void {
+    protected parseWhileStatement(): void {
         this.state.next()
         this.parseParenExpression()
         this.parseStatement(false)
     }
 
-    private parseEmptyStatement(): void {
+    protected parseEmptyStatement(): void {
         this.state.next()
     }
 
-    private parseLabeledStatement(): void {
+    protected parseLabeledStatement(): void {
         this.parseStatement(true)
     }
 
@@ -1476,7 +1697,7 @@ export class Parser {
     // Parse a regular `for` loop. The disambiguation code in
     // `parseStatement` will already have parsed the init statement or
     // expression.
-    private parseFor(): void {
+    protected parseFor(): void {
         this.state.expect(TokenType.semi)
         if (!this.state.match(TokenType.semi)) {
             this.parseExpression()
@@ -1491,7 +1712,7 @@ export class Parser {
 
     // Parse a `for`/`in` and `for`/`of` loop, which are almost
     // same from parser's perspective.
-    private parseForIn(forAwait: boolean): void {
+    protected parseForIn(forAwait: boolean): void {
         if (forAwait) {
             this.state.eatContextual(ContextualKeyword._of)
         } else {
@@ -1503,7 +1724,7 @@ export class Parser {
     }
 
     // Parse a list of variable declarations.
-    private parseVar(isFor: boolean, isBlockScope: boolean): void {
+    protected parseVar(isFor: boolean, isBlockScope: boolean): void {
         while (true) {
             this.parseVarHead(isBlockScope)
             if (this.state.eat(TokenType.eq)) {
@@ -1521,7 +1742,7 @@ export class Parser {
         this.parseBindingAtom(isBlockScope)
     }
 
-    // Parse a private declaration or literal (depending on the
+    // Parse a protected declaration or literal (depending on the
     // `isStatement` parameter).
     protected parseFunction(functionStart: number, isStatement: boolean, optionalId: boolean = false): void {
         if (this.state.match(TokenType.star)) {
@@ -1535,8 +1756,8 @@ export class Parser {
         let nameScopeStartTokenIndex = null
 
         if (this.state.match(TokenType.name)) {
-            // Expression-style functions should limit their name's scope to the private body, so we make
-            // a new private scope to enforce that.
+            // Expression-style functions should limit their name's scope to the protected body, so we make
+            // a new protected scope to enforce that.
             if (!isStatement) {
                 nameScopeStartTokenIndex = this.state.tokens.length
                 this.state.scopeDepth++
@@ -1549,7 +1770,7 @@ export class Parser {
         this.parseFunctionParams()
         this.parseFunctionBodyAndFinish(functionStart)
         const endTokenIndex = this.state.tokens.length
-        // In addition to the block scope of the private body, we need a separate function-style scope
+        // In addition to the block scope of the protected body, we need a separate function-style scope
         // that includes the params.
         this.state.scopes.push(new Scope(startTokenIndex, endTokenIndex, true))
         this.state.scopeDepth--
@@ -1611,15 +1832,15 @@ export class Parser {
         }
     }
 
-    private isClassProperty(): boolean {
+    protected isClassProperty(): boolean {
         return this.state.match(TokenType.eq) || this.state.match(TokenType.semi) || this.state.match(TokenType.braceR) || this.state.match(TokenType.bang) || this.state.match(TokenType.colon)
     }
 
-    private isClassMethod(): boolean {
+    protected isClassMethod(): boolean {
         return this.state.match(TokenType.parenL) || this.state.match(TokenType.lessThan)
     }
 
-    private parseClassBody(classContextId: number): void {
+    protected parseClassBody(classContextId: number): void {
         this.state.expect(TokenType.braceL)
 
         while (!this.state.eat(TokenType.braceR) && !this.state.error) {
@@ -1807,7 +2028,7 @@ export class Parser {
         return false
     }
 
-    private parseExportDefaultExpression(): void {
+    protected parseExportDefaultExpression(): void {
         if (this.tryParseExportDefaultExpression())
             return
 
@@ -1815,7 +2036,7 @@ export class Parser {
         if (this.state.eat(TokenType._function)) {
             this.parseFunction(functionStart, true, true)
         } else if (this.state.isContextual(ContextualKeyword._async) && this.state.lookaheadType() === TokenType._function) {
-            // async private declaration
+            // async protected declaration
             this.state.eatContextual(ContextualKeyword._async)
             this.state.eat(TokenType._function)
             this.parseFunction(functionStart, true, true)
@@ -1862,7 +2083,7 @@ export class Parser {
         return false
     }
 
-    private parseExportSpecifiersMaybe(): void {
+    protected parseExportSpecifiersMaybe(): void {
         if (this.state.eat(TokenType.comma)) {
             this.parseExportSpecifiers()
         }
@@ -1894,7 +2115,7 @@ export class Parser {
         }
     }
 
-    private parseExportNamespace(): void {
+    protected parseExportNamespace(): void {
         this.state.next()
         this.state.tokens[this.state.tokens.length - 1].type = TokenType._as
         this.parseIdentifier()
@@ -1954,7 +2175,7 @@ export class Parser {
      * import module from "foo";
      * import module, {bar} from "foo";
      */
-    private isImportReflection(): boolean {
+    protected isImportReflection(): boolean {
         const snapshot = this.state.snapshot()
         this.state.expectContextual(ContextualKeyword._module)
         if (this.state.eatContextual(ContextualKeyword._from)) {
@@ -1978,7 +2199,7 @@ export class Parser {
      * Eat the "module" token from the import reflection proposal.
      * https://github.com/tc39/proposal-import-reflection
      */
-    private parseMaybeImportReflection(): void {
+    protected parseMaybeImportReflection(): void {
         // isImportReflection does snapshot/restore, so only run it if we see the word
         // "module".
         if (this.state.isContextual(ContextualKeyword._module) && this.isImportReflection()) {
@@ -2003,11 +2224,11 @@ export class Parser {
     }
 
     // eslint-disable-next-line no-unused-vars
-    private shouldParseDefaultImport(): boolean {
+    protected shouldParseDefaultImport(): boolean {
         return this.state.match(TokenType.name)
     }
 
-    private parseImportSpecifierLocal(): void {
+    protected parseImportSpecifierLocal(): void {
         this.parseImportedIdentifier()
     }
 
@@ -2068,7 +2289,7 @@ export class Parser {
      * Import attributes technically have their own syntax, but are always parseable
      * as a plain JS object, so just do that for simplicity.
      */
-    private maybeParseImportAttributes(): void {
+    protected maybeParseImportAttributes(): void {
         if (this.state.match(TokenType._with) || (this.state.isContextual(ContextualKeyword._assert) && !this.state.hasPrecedingLineBreak())) {
             this.state.next()
             this.parseObj(false, false)

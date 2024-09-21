@@ -1,6 +1,5 @@
 import * as assert from "assert";
-
-import {parse} from "../src/parser";
+import {parse} from "../src/parser/state";
 import {Scope} from "../src/parser/state";
 
 function assertScopes(code: string, expectedScopes: Array<Scope>): void {
