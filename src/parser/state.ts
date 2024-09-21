@@ -3,8 +3,12 @@ import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'
 import { Charcode, skipWhiteSpace } from './charcode'
+import { Parser } from './parser_base'
+import { ParserFlow } from './parser_flow'
+import { ParserTypescript } from './parser_typescript'
 
 export let state: State
+export let parser: Parser
 
 export function initParser(
     inputCode: string,
@@ -13,6 +17,12 @@ export function initParser(
     isFlowEnabledArg: boolean,
 ): void {
     state = new State(inputCode, isTypeScriptEnabledArg, isFlowEnabledArg, isJSXEnabledArg)
+    if (isFlowEnabledArg)
+        parser = new ParserFlow(state)
+    else if (isTypeScriptEnabledArg)
+        parser = new ParserTypescript(state)
+    else
+        parser = new Parser(state)
 }
 
 export class Scope {

@@ -62,7 +62,7 @@ import {
 import { ContextualKeyword } from './keywords'
 import { TokenType, TokenType as tt } from "./generated/types"
 import { IS_IDENTIFIER_START, Charcode } from "./charcode"
-import { Scope, state } from './state'
+import { Scope, state, parser } from './state'
 
 // #region lval.ts -------------------------------------------------------------
 export function parseSpread(): void {
@@ -2439,6 +2439,6 @@ export function parseFile(): File {
         state.scanner.skipLineComment(2)
     }
     state.scanner.nextToken()
-    return parseTopLevel()
+    return parser.parseTopLevel()
 }
 // #endregion
