@@ -45,7 +45,7 @@ export class JestHoistTransformer extends Transformer {
     return false;
   }
 
-  getHoistedCode(): string {
+  override getHoistedCode(): string {
     if (this.hoistedFunctionNames.length > 0) {
       // This will be placed before module interop code, but that's fine since
       // imports aren't allowed in module mock factories.

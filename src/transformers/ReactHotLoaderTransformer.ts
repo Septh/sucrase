@@ -13,7 +13,7 @@ export class ReactHotLoaderTransformer extends Transformer {
     this.extractedDefaultExportName = extractedDefaultExportName
   }
 
-  getPrefixCode(): string {
+  override getPrefixCode(): string {
     return `
       (function () {
         var enterModule = require('react-hot-loader').enterModule;
@@ -23,7 +23,7 @@ export class ReactHotLoaderTransformer extends Transformer {
       .trim()
   }
 
-  getSuffixCode(): string {
+  override getSuffixCode(): string {
     const topLevelNames = new Set<string>()
     for (const token of this.tokens.tokens) {
       if (

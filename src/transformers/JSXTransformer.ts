@@ -49,7 +49,7 @@ export class JSXTransformer extends Transformer {
     return false;
   }
 
-  getPrefixCode(): string {
+  override getPrefixCode(): string {
     let prefix = "";
     if (this.filenameVarName) {
       prefix += `const ${this.filenameVarName} = ${JSON.stringify(this.options.filePath || "")};`;

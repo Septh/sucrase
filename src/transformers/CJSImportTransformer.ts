@@ -48,7 +48,7 @@ export class CJSImportTransformer extends Transformer {
       : EMPTY_DECLARATION_INFO
   }
 
-  getPrefixCode(): string {
+  override getPrefixCode(): string {
     let prefix = ""
     if (this.hadExport) {
       prefix += 'Object.defineProperty(exports, "__esModule", {value: true});'
@@ -56,7 +56,7 @@ export class CJSImportTransformer extends Transformer {
     return prefix
   }
 
-  getSuffixCode(): string {
+  override getSuffixCode(): string {
     if (this.enableLegacyBabel5ModuleInterop && this.hadDefaultExport && !this.hadNamedExport) {
       return "\nmodule.exports = exports.default;\n"
     }
