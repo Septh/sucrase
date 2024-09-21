@@ -1,10 +1,10 @@
-import type {HelperManager} from "../managers/HelperManager";
+import type {HelperManager} from "./managers/HelperManager";
 import type {Options, Transform} from "../index";
-import type {NameManager} from "../managers/NameManager";
+import type {NameManager} from "./managers/NameManager";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/types.generated";
-import type {TokenProcessor} from "../processors/TokenProcessor";
-import {getClassInfo, type ClassInfo} from "../util/getClassInfo";
+import type {TokenProcessor} from "./processors/TokenProcessor";
+import {getClassInfo, type ClassInfo} from "./util/getClassInfo";
 import {CJSImportTransformer} from "./CJSImportTransformer";
 import {ESMImportTransformer} from "./ESMImportTransformer";
 import {FlowTransformer} from "./FlowTransformer";

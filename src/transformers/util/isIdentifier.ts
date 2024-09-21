@@ -1,4 +1,4 @@
-import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../parser/charcode";
+import {IS_IDENTIFIER_CHAR, IS_IDENTIFIER_START} from "../../parser/charcode";
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar
 // Hard-code a list of reserved words rather than trying to use keywords or contextual keywords

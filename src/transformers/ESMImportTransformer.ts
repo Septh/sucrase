@@ -1,19 +1,19 @@
-import type {HelperManager} from "../managers/HelperManager";
+import type {HelperManager} from "./managers/HelperManager";
 import type {Options} from "../index";
-import type {NameManager} from "../managers/NameManager";
+import type {NameManager} from "./managers/NameManager";
 import {ContextualKeyword} from "../parser/keywords";
 import {TokenType as tt} from "../parser/types.generated";
-import type {TokenProcessor} from "../processors/TokenProcessor";
-import {elideImportEquals} from "../util/elideImportEquals";
+import type {TokenProcessor} from "./processors/TokenProcessor";
+import {elideImportEquals} from "./util/elideImportEquals";
 import {getDeclarationInfo,
   type DeclarationInfo,
   EMPTY_DECLARATION_INFO,
-} from "../util/getDeclarationInfo";
-import {getImportExportSpecifierInfo} from "../util/getImportExportSpecifierInfo";
-import {getNonTypeIdentifiers} from "../util/getNonTypeIdentifiers";
-import {isExportFrom} from "../util/isExportFrom";
-import {removeMaybeImportAttributes} from "../util/removeMaybeImportAttributes";
-import {shouldElideDefaultExport} from "../util/shouldElideDefaultExport";
+} from "./util/getDeclarationInfo";
+import {getImportExportSpecifierInfo} from "./util/getImportExportSpecifierInfo";
+import {getNonTypeIdentifiers} from "./util/getNonTypeIdentifiers";
+import {isExportFrom} from "./util/isExportFrom";
+import {removeMaybeImportAttributes} from "./util/removeMaybeImportAttributes";
+import {shouldElideDefaultExport} from "./util/shouldElideDefaultExport";
 import type {ReactHotLoaderTransformer} from "./ReactHotLoaderTransformer";
 import Transformer from "./Transformer";
 

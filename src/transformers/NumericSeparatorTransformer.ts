@@ -1,5 +1,5 @@
 import {TokenType as tt} from "../parser/types.generated";
-import type {TokenProcessor} from "../processors/TokenProcessor";
+import type {TokenProcessor} from "./processors/TokenProcessor";
 import Transformer from "./Transformer";
 
 export class NumericSeparatorTransformer extends Transformer {

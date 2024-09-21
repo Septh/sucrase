@@ -1,13 +1,13 @@
-import { CJSImportProcessor } from "./processors/CJSImportProcessor"
-import { HelperManager } from "./managers/HelperManager"
-import { identifyShadowedGlobals } from "./util/identifyShadowedGlobals"
-import { NameManager } from "./managers/NameManager"
+import { CJSImportProcessor } from "./transformers/processors/CJSImportProcessor"
+import { HelperManager } from "./transformers/managers/HelperManager"
+import { identifyShadowedGlobals } from "./transformers/util/identifyShadowedGlobals"
+import { NameManager } from "./transformers/managers/NameManager"
 import type { Options } from "./options"
 import type { Scope } from "./parser/state"
-import { TokenProcessor } from "./processors/TokenProcessor"
-import { getTSImportedNames } from "./util/getTSImportedNames"
+import { TokenProcessor } from "./transformers/processors/TokenProcessor"
+import { getTSImportedNames } from "./transformers/util/getTSImportedNames"
 import { parse } from './parser/state'
-import { formatTokens } from './util/formatTokens'
+import { formatTokens } from './transformers/util/formatTokens'
 
 export interface SucraseContext {
     tokenProcessor: TokenProcessor

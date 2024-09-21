@@ -1,5 +1,5 @@
 import { getSucraseContext } from './context'
-import { computeSourceMap, type RawSourceMap } from "./util/computeSourceMap"
+import { computeSourceMap, type RawSourceMap } from "./sourcemap"
 import { RootTransformer } from "./transformers/RootTransformer"
 import type { Options, SourceMapOptions, Transform } from "./options"
 

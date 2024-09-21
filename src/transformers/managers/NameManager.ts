@@ -1,4 +1,4 @@
-import type {Token} from "../parser/token";
+import type {Token} from "../../parser/token";
 import {getIdentifierNames} from "../util/getIdentifierNames";
 
 export class NameManager {

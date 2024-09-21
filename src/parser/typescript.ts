@@ -1,4 +1,4 @@
-import { Parser, StopState } from './parser_base'
+import { Parser, StopState } from './parser'
 import { TokenType } from './types.generated'
 import { ContextualKeyword } from './keywords'
 import { IdentifierRole } from './token'

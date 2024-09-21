@@ -1,9 +1,9 @@
 import {GenMapping, maybeAddSegment, toEncodedMap} from "@jridgewell/gen-mapping";
 
-import type {SourceMapOptions} from "../index";
-import type {Token} from "../parser/token";
-import {Charcode} from "../parser/charcode";
-import type {RootTransformerResult} from "../transformers/RootTransformer";
+import type {SourceMapOptions} from "./index";
+import type {Token} from "./parser/token";
+import {Charcode} from "./parser/charcode";
+import type {RootTransformerResult} from "./transformers/RootTransformer";
 
 export interface RawSourceMap {
   version: number;

@@ -3,9 +3,9 @@ import { ContextualKeyword } from './keywords'
 import { Token, TypeAndKeyword } from './token'
 import { createScanner, type Scanner } from './scanner'
 import { Charcode, skipWhiteSpace } from './charcode'
-import { Parser } from './parser_base'
-import { ParserFlow } from './parser_flow'
-import { ParserTypescript } from './parser_typescript'
+import { Parser } from './parser'
+import { ParserFlow } from './flow'
+import { ParserTypescript } from './typescript'
 
 export let parser: Parser
 

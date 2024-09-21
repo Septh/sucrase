@@ -1,5 +1,5 @@
-import type { Scope } from "../parser/state"
-import { TokenType as tt } from "../parser/types.generated"
+import type { Scope } from "../../parser/state"
+import { TokenType as tt } from "../../parser/types.generated"
 import type { TokenProcessor } from "../processors/TokenProcessor"
 
 /**

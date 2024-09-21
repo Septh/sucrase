@@ -1,9 +1,9 @@
 import type {NameManager} from "../managers/NameManager";
-import type {Token} from "../parser/token";
-import {ContextualKeyword} from "../parser/keywords";
-import {TokenType as tt} from "../parser/types.generated";
+import type {Token} from "../../parser/token";
+import {ContextualKeyword} from "../../parser/keywords";
+import {TokenType as tt} from "../../parser/types.generated";
 import type {TokenProcessor} from "../processors/TokenProcessor";
-import type {RootTransformer} from "../transformers/RootTransformer";
+import type {RootTransformer} from "../RootTransformer";
 
 export interface ClassHeaderInfo {
   isExpression: boolean;

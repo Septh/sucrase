@@ -1,5 +1,5 @@
 import { IdentifierRole } from "../parser/token"
-import type { TokenProcessor } from "../processors/TokenProcessor"
+import type { TokenProcessor } from "./processors/TokenProcessor"
 import Transformer from "./Transformer"
 
 export class ReactHotLoaderTransformer extends Transformer {

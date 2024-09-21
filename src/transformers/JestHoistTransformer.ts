@@ -1,7 +1,7 @@
-import type {CJSImportProcessor} from "../processors/CJSImportProcessor";
-import type {NameManager} from "../managers/NameManager";
+import type {CJSImportProcessor} from "./processors/CJSImportProcessor";
+import type {NameManager} from "./managers/NameManager";
 import {TokenType as tt} from "../parser/types.generated";
-import type {TokenProcessor} from "../processors/TokenProcessor";
+import type {TokenProcessor} from "./processors/TokenProcessor";
 import type {RootTransformer} from "./RootTransformer";
 import Transformer from "./Transformer";
 
