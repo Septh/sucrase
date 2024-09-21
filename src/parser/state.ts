@@ -7,32 +7,15 @@ import { Parser } from './parser'
 import { ParserFlow } from './flow'
 import { ParserTypescript } from './typescript'
 
-export let parser: Parser
-
-export class Loc {
-    line: number
-    column: number
-    constructor(line: number, column: number) {
-        this.line = line
-        this.column = column
+declare global {
+    interface Error {
+        pos: number
     }
 }
 
-export function initParser(
-    inputCode: string,
-    isJSXEnabledArg: boolean,
-    isTypeScriptEnabledArg: boolean,
-    isFlowEnabledArg: boolean,
-) {
-    const state = new State(inputCode, isTypeScriptEnabledArg, isFlowEnabledArg, isJSXEnabledArg)
-    if (isFlowEnabledArg)
-        parser = new ParserFlow(state)
-    else if (isTypeScriptEnabledArg)
-        parser = new ParserTypescript(state)
-    else
-        parser = new Parser(state)
-
-    return { state, parser }
+interface Location {
+    line: number
+    column: number
 }
 
 export class Scope {
@@ -66,38 +49,25 @@ export class StateSnapshot {
 }
 
 export class State {
-    input: string
-    isTypeScriptEnabled: boolean
-    isFlowEnabled: boolean
-    isJSXEnabled: boolean
+    readonly input: string
+    readonly isTypeScriptEnabled: boolean
+    readonly isFlowEnabled: boolean
+    readonly isJSXEnabled: boolean
+    readonly scanner: Scanner
+
+    pos: number                                 // The current position of the tokenizer in the input.
+    potentialArrowAt: number                    // Used to signify the start of a potential arrow function
+    noAnonFunctionType: boolean                 // Used by Flow to handle an edge case involving function type parsing.
+    inDisallowConditionalTypesContext: boolean  // Used by TypeScript to handle ambiguities when parsing conditional types.
+    tokens: Array<Token>                        // Token store.
+    scopes: Array<Scope>                        // Array of all observed scopes, ordered by their ending position.
+    scopeDepth: number
+    type: TokenType                             // Information about the current token.
+    contextualKeyword: ContextualKeyword
+    start: number
+    end: number
+    isType: boolean
     nextContextId: number
-
-    // Used to signify the start of a potential arrow function
-    potentialArrowAt: number = -1;
-
-    // Used by Flow to handle an edge case involving function type parsing.
-    noAnonFunctionType: boolean = false;
-
-    // Used by TypeScript to handle ambiguities when parsing conditional types.
-    inDisallowConditionalTypesContext: boolean = false;
-
-    // Token store.
-    tokens: Array<Token> = [];
-
-    // Array of all observed scopes, ordered by their ending position.
-    scopes: Array<Scope> = [];
-
-    // The current position of the tokenizer in the input.
-    pos: number = 0;
-
-    // Information about the current token.
-    type: TokenType = TokenType.eof;
-    contextualKeyword: ContextualKeyword = ContextualKeyword.NONE;
-    start: number = 0;
-    end: number = 0;
-
-    isType: boolean = false;
-    scopeDepth: number = 0;
 
     /**
      * If the parser is in an error state, then the token is always tt.eof and all functions can
@@ -107,14 +77,25 @@ export class State {
      * backtracking without exceptions and without needing to explicitly propagate error states
      * everywhere.
      */
-    error: Error | null = null;
+    error: Error | null = null
 
-    scanner: Scanner
     constructor(input: string, isTypeScriptEnabled: boolean, isFlowEnabled: boolean, isJSXEnabled: boolean) {
         this.input = input
         this.isTypeScriptEnabled = isTypeScriptEnabled
         this.isFlowEnabled = isFlowEnabled
         this.isJSXEnabled = isJSXEnabled
+        this.pos = 0
+        this.potentialArrowAt = -1
+        this.noAnonFunctionType = false
+        this.inDisallowConditionalTypesContext = false
+        this.tokens = []
+        this.scopes = []
+        this.scopeDepth = 0
+        this.type = TokenType.eof
+        this.contextualKeyword = ContextualKeyword.NONE
+        this.start = 0
+        this.end = 0
+        this.isType = false
         this.nextContextId = 1
 
         this.scanner = createScanner(this)
@@ -354,17 +335,7 @@ export class State {
         this.scanner.finishToken(TokenType.eof)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    augmentError(error: any): any {
-        if ("pos" in error) {
-            const loc = this.locationForIndex(error.pos)
-            error.message += ` (${loc.line}:${loc.column})`
-            error.loc = loc
-        }
-        return error
-    }
-
-    locationForIndex(pos: number): Loc {
+    locationForIndex(pos: number): Location {
         let line = 1
         let column = 1
         for (let i = 0; i < pos; i++) {
@@ -375,12 +346,38 @@ export class State {
                 column++
             }
         }
-        return new Loc(line, column)
+        return { line, column }
     }
-
 }
 
-export function parseFile(state: State) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function augmentError(error: any, loc: Location): any {
+    if ("pos" in error) {
+        error.message += ` (${loc.line}:${loc.column})`
+        error.loc = loc
+    }
+    return error
+}
+
+export function initParser(input: string, isJSXEnabled: boolean, isTypeScriptEnabled: boolean, isFlowEnabled: boolean) {
+    const state = new State(input, isTypeScriptEnabled, isFlowEnabled, isJSXEnabled)
+    const parser = (
+        isFlowEnabled
+            ? new ParserFlow(state)
+            : isTypeScriptEnabled
+                ? new ParserTypescript(state)
+                : new Parser(state)
+    )
+
+    return { state, parser }
+}
+
+export function parse(input: string, isJSXEnabled: boolean, isTypeScriptEnabled: boolean, isFlowEnabled: boolean) {
+    if (isFlowEnabled && isTypeScriptEnabled) {
+        throw new Error("Cannot combine flow and typescript plugins.")
+    }
+
+    const { state, parser } = initParser(input, isJSXEnabled, isTypeScriptEnabled, isFlowEnabled)
     // If enabled, skip leading hashbang line.
     if (
         state.pos === 0 &&
@@ -390,23 +387,12 @@ export function parseFile(state: State) {
         state.scanner.skipLineComment(2)
     }
     state.scanner.nextToken()
-    return parser.parseTopLevel()
-}
 
-export function parse(
-    input: string,
-    isJSXEnabled: boolean,
-    isTypeScriptEnabled: boolean,
-    isFlowEnabled: boolean,
-  ) {
-    if (isFlowEnabled && isTypeScriptEnabled) {
-      throw new Error("Cannot combine flow and typescript plugins.");
-    }
-    const { state } = initParser(input, isJSXEnabled, isTypeScriptEnabled, isFlowEnabled);
-    const result = parseFile(state);
+    const result = parser.parseTopLevel()
     if (state.error) {
-      throw state.augmentError(state.error);
+        const loc = state.locationForIndex(state.error.pos)
+        throw augmentError(state.error, loc)
     }
-    return result;
-  }
-  
+
+    return result
+}
