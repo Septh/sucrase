@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import {spawn} from "child_process";
+import {spawn} from "node:child_process";
 
 /**
  * Variant of exec that connects stdout, stderr, and stdin, mostly so console

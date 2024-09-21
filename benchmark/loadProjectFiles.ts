@@ -1,5 +1,5 @@
-import {readdir, readFile, stat} from "mz/fs";
-import {join} from "path";
+import {readdir, readFile, stat} from "node:fs/promises";
+import {join} from "node:path";
 
 export interface FileInfo {
   path: string;

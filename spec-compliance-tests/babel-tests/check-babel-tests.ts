@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 // @ts-ignore: Babel package missing types.
 import * as babel from "@babel/core";
-import {exists, readdir, readFile, stat} from "mz/fs";
+import {readdir, readFile, stat} from "node:fs/promises";
 import {join, relative, resolve} from "path";
 
 import run from "../../script/run";
@@ -103,7 +103,7 @@ interface ResultSummary {
  * handling the important language edge cases.
  */
 async function main(): Promise<void> {
-  if (!(await exists(BABEL_TESTS_DIR))) {
+  if (!(await stat(BABEL_TESTS_DIR).catch(() => false))) {
     console.log(`Directory ${BABEL_TESTS_DIR} not found, cloning a new one.`);
     await run(`git clone ${BABEL_REPO_URL} ${BABEL_TESTS_DIR}`);
   }
@@ -175,7 +175,7 @@ async function checkTests(dir: string, resultSummary: ResultSummary): Promise<vo
 async function checkTestForDir(dir: string, resultSummary: ResultSummary): Promise<void> {
   const displayDir = relative(FIXTURES_DIR, dir);
   const outputJSONPath = join(dir, "output.json");
-  if (!(await exists(outputJSONPath))) {
+  if (!(await stat(outputJSONPath).catch(() => false))) {
     return;
   }
 
@@ -216,7 +216,7 @@ async function checkTestForDir(dir: string, resultSummary: ResultSummary): Promi
 async function getTestCode(dir: string): Promise<string> {
   for (const extension of [".js", ".ts", ".tsx", ".mjs", ".cjs"]) {
     const filePath = join(dir, `input${extension}`);
-    if (await exists(filePath)) {
+    if (await stat(filePath).catch(() => false)) {
       return readFileContents(filePath);
     }
   }
@@ -232,7 +232,7 @@ async function getBabelPlugins(testDir: string): Promise<Array<string>> {
   let dir = testDir;
   while (resolve(dir) !== resolve(FIXTURES_DIR)) {
     const optionsJSONPath = join(dir, "options.json");
-    if (await exists(optionsJSONPath)) {
+    if (await stat(optionsJSONPath).catch(() => false)) {
       const options = await readJSONFileContents(optionsJSONPath);
       if (options.plugins) {
         plugins.push(

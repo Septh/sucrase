@@ -1,9 +1,11 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
-import {exec} from "mz/child_process";
-import {writeFile} from "mz/fs";
-
+import child_process from "node:child_process";
+import { promisify } from 'node:util';
+import {writeFile} from "node:fs/promises"
 import run from "../script/run";
+
+const exec = promisify(child_process.exec)
 
 interface BenchmarkResult {
   name: string;
@@ -50,9 +52,9 @@ double-check the git state after running.
 }
 
 async function getBranchRef(): Promise<string> {
-  let branchRef = (await exec("git rev-parse --abbrev-ref HEAD"))[0].toString().trim();
+  let branchRef = (await exec("git rev-parse --abbrev-ref HEAD")).stdout.trim();
   if (branchRef === "HEAD") {
-    branchRef = (await exec("git rev-parse HEAD"))[0].toString().trim();
+    branchRef = (await exec("git rev-parse HEAD")).stdout.trim();
   }
   return branchRef;
 }
@@ -128,7 +130,7 @@ function summarizeChange(
 
 async function runBenchmark(): Promise<BenchmarkResult> {
   return JSON.parse(
-    (await exec("node -r sucrase/register benchmark/benchmark.ts jest-diff"))[0].toString(),
+    (await exec("node -r sucrase/register benchmark/benchmark.ts jest-diff")).stdout,
   );
 }
 

@@ -1,12 +1,16 @@
 #!./node_modules/.bin/sucrase-node
 /* eslint-disable no-console */
+import child_process from "node:child_process";
+import { promisify } from 'node:util';
+import {stat} from "node:fs/promises";
+import { join } from 'node:path';
 import chalk from "chalk";
-import {exec} from "mz/child_process";
-import {exists} from "mz/fs";
 
 import run from "../../script/run";
 
-const TEST262_HARNESS = "./node_modules/.bin/test262-harness";
+const exec = promisify(child_process.exec)
+
+const TEST262_HARNESS = join("node_modules", ".bin", process.platform === "win32" ? "test262-harness.cmd" : "test262-harness");
 const TEST262_DIR = "./spec-compliance-tests/test262/test262-checkout";
 const TEST262_REPO_URL = "https://github.com/tc39/test262.git";
 const TEST262_REVISION = "157b18d16b5d52501c4d75ac422d3a80bfad1c17";
@@ -14,18 +18,18 @@ const TEST262_REVISION = "157b18d16b5d52501c4d75ac422d3a80bfad1c17";
 const SKIPPED_TESTS = [
   // This test fails due to an unhandled promise rejection that seems to be unrelated to the use of
   // optional chaining.
-  "language/expressions/optional-chaining/member-expression-async-identifier.js",
+  join("language", "expressions", "optional-chaining", "member-expression-async-identifier.js"),
   // This file tests a number of cases like (a?.b)(), which are currently considered out of scope.
   // See tech plan at:
   // https://github.com/alangpierce/sucrase/wiki/Sucrase-Optional-Chaining-and-Nullish-Coalescing-Technical-Plan
-  "language/expressions/optional-chaining/optional-call-preserves-this.js",
+  join("language", "expressions", "optional-chaining", "optional-call-preserves-this.js"),
 ];
 
 /**
  * Run the test262 suite on some tests that we know are useful.
  */
 async function main(): Promise<void> {
-  if (!(await exists(TEST262_DIR))) {
+  if (!(await stat(TEST262_DIR).catch(() => false))) {
     console.log(`Directory ${TEST262_DIR} not found, cloning a new one.`);
     await run(`git clone ${TEST262_REPO_URL} ${TEST262_DIR}`);
   }
@@ -51,7 +55,7 @@ async function main(): Promise<void> {
     --reporter "json" \
     "${TEST262_DIR}/test/language/expressions/coalesce/**/*.js" \
     "${TEST262_DIR}/test/language/expressions/optional-chaining/**/*.js"`)
-  )[0].toString();
+  ).stdout
 
   const harnessOutput = JSON.parse(harnessStdout);
   let numPassed = 0;

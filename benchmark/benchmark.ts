@@ -4,8 +4,9 @@
 import * as babel from "@babel/core";
 import * as swc from "@swc/core";
 import * as esbuild from "esbuild";
-import {fs} from "mz";
-import {exists} from "mz/fs";
+import fs from "node:fs";
+import { stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import * as TypeScript from "typescript";
 
 import run from "../script/run";
@@ -86,7 +87,7 @@ async function benchmarkJest(): Promise<void> {
 }
 
 async function getJestFiles(): Promise<Array<FileInfo>> {
-  if (!(await exists("./sample/jest"))) {
+  if (!(await stat("./sample/jest").catch(() => false))) {
     await run("git clone https://github.com/facebook/jest.git ./sample/jest");
     process.chdir("./sample/jest");
     await run("git checkout 7430a7824421c122cd07035d800d22e1007408fa");
@@ -102,8 +103,9 @@ async function getJestFiles(): Promise<Array<FileInfo>> {
   }));
   // esbuild doesn't allow top-level await when outputting to CJS, so skip the
   // one file in the Jest codebase that uses that syntax.
+  const unwanted = join("jest", "e2e", "native-esm", "__tests__", "native-esm-tla.test.js")
   files = files.filter(
-    ({path}) => !path.includes("jest/e2e/native-esm/__tests__/native-esm-tla.test.js"),
+    ({path}) => !path.includes(unwanted),
   );
   return files;
 }
@@ -258,7 +260,7 @@ async function benchmarkFiles(benchmarkOptions: BenchmarkOptions): Promise<void>
   await runBenchmark(
     "esbuild",
     benchmarkOptions,
-    async (code: string, path: string) =>
+    async (code: string, path: string) => 
       (
         await esbuild.transform(code, {
           loader: path.endsWith(".ts") ? "ts" : "tsx",
